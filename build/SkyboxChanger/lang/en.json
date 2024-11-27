@@ -1,0 +1,6 @@
+{
+  "menu.title": "Skybox",
+  "menu.instruction": "[W/S] Scroll - [D] Select - [A] Back - [Tab] Close",
+  "change.fail": "[{green}SkyboxChanger{default}] {red}Failed to change to {0}.",
+  "change.success": "[{green}SkyboxChanger{default}] {green}Success!"
+}
