@@ -1,6 +1,0 @@
-{
-  "menu.title": "Skybox",
-  "menu.instruction": "[W/S] 滚动 - [D] 选择 - [A] 返回 - [Tab] 关闭",
-  "change.fail": "[{green}SkyboxChanger{default}] {red}修改至{0}失败。",
-  "change.success": "[{green}SkyboxChanger{default}] {green}修改成功！"
-}
