@@ -21,7 +21,15 @@ public class Helper
     var FindOrCreateFromResource = VirtualFunction.Create<IntPtr, IntPtr, string, IntPtr>(pIMaterialSystem2, 14);
     IntPtr outMaterial = 0;
     IntPtr pOutMaterial = (nint)(&outMaterial);
-    var materialptr3 = FindOrCreateFromResource.Invoke(pIMaterialSystem2, pOutMaterial, material);
+    IntPtr materialptr3;
+    if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+    {
+      materialptr3 = FindOrCreateFromResource.Invoke(pIMaterialSystem2, pOutMaterial, material);
+    }
+    else
+    {
+      materialptr3 = FindOrCreateFromResource.Invoke(pOutMaterial, 0, material);
+    }
     if (materialptr3 == 0)
     {
       return 0;

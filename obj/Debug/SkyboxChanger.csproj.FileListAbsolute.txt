@@ -19,3 +19,4 @@ E:\programming\CS2-SkyboxChanger\build\SkyboxChanger\lang\zh-Hans.json
 E:\programming\CS2-SkyboxChanger\build\SkyboxChanger\SkyboxChanger.deps.json
 E:\programming\CS2-SkyboxChanger\build\SkyboxChanger\SkyboxChanger.dll
 E:\programming\CS2-SkyboxChanger\build\SkyboxChanger\SkyboxChanger.pdb
+E:\programming\CS2-SkyboxChanger\obj\Debug\SkyboxChanger.sourcelink.json
