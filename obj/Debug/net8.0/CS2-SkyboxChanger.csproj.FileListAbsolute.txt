@@ -1,0 +1,12 @@
+E:\programming\CS2-SkyboxChanger\bin\Debug\net8.0\CS2-SkyboxChanger.deps.json
+E:\programming\CS2-SkyboxChanger\bin\Debug\net8.0\CS2-SkyboxChanger.dll
+E:\programming\CS2-SkyboxChanger\bin\Debug\net8.0\CS2-SkyboxChanger.pdb
+E:\programming\CS2-SkyboxChanger\obj\Debug\net8.0\CS2-SkyboxChanger.csproj.AssemblyReference.cache
+E:\programming\CS2-SkyboxChanger\obj\Debug\net8.0\CS2-SkyboxChanger.GeneratedMSBuildEditorConfig.editorconfig
+E:\programming\CS2-SkyboxChanger\obj\Debug\net8.0\CS2-SkyboxChanger.AssemblyInfoInputs.cache
+E:\programming\CS2-SkyboxChanger\obj\Debug\net8.0\CS2-SkyboxChanger.AssemblyInfo.cs
+E:\programming\CS2-SkyboxChanger\obj\Debug\net8.0\CS2-SkyboxChanger.csproj.CoreCompileInputs.cache
+E:\programming\CS2-SkyboxChanger\obj\Debug\net8.0\CS2-SkyboxChanger.dll
+E:\programming\CS2-SkyboxChanger\obj\Debug\net8.0\refint\CS2-SkyboxChanger.dll
+E:\programming\CS2-SkyboxChanger\obj\Debug\net8.0\CS2-SkyboxChanger.pdb
+E:\programming\CS2-SkyboxChanger\obj\Debug\net8.0\ref\CS2-SkyboxChanger.dll
