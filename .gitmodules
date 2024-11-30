@@ -1,7 +1,6 @@
-[submodule ".deps/hl2sdk"]
+[submodule "kvlib/.deps/hl2sdk"]
 	path = kvlib/.deps/hl2sdk
 	url = https://github.com/alliedmodders/hl2sdk
-	branch = cs2
-[submodule ".deps/metamod-source"]
+[submodule "kvlib/.deps/metamod-source"]
 	path = kvlib/.deps/metamod-source
 	url = https://github.com/alliedmodders/metamod-source
