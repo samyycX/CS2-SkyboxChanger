@@ -1,0 +1,6 @@
+{
+  "menu.title": "Небо",
+  "menu.instruction": "[W/S] Вверх/Вниз - [D] выбрать - [A] назад - [Tab] закрыть",
+  "change.fail": "[{green}Небо{default}] {red}Неудалось изменить {0}.",
+  "change.success": "[{green}Небо{default}] {green}Успешно!"
+}

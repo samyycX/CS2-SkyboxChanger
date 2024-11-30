@@ -1,1 +1,4 @@
 obj/
+kvlib/.vscode/
+kvlib/.xmake/
+kvlib/build/
