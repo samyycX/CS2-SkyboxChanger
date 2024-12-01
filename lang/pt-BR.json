@@ -1,0 +1,11 @@
+{
+  "menu.title": "Skybox",
+  "menu.instruction": "[W/S] Mover  - [D] Selecionar - [A] Voltar - [Tab] Fechar",
+  "menu.setforall": "Definir para todos os jogadores",
+  "menu.setforself": "Definir para si mesmo",
+  "menu.brightness": "Brilho",
+  "menu.tintcolor": "Cor do tom",
+  "menu.defaultskybox": "Padrão",
+  "change.fail": "[{green}SkyboxChanger{default}] {red}Falha ao mudar para {0}.",
+  "change.success": "[{green}SkyboxChanger{default}] {green}Sucesso!"
+}
