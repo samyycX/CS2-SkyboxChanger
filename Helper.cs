@@ -1,3 +1,4 @@
+using System.Drawing;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using CounterStrikeSharp.API;
@@ -72,8 +73,22 @@ public class Helper
     }
     return *(IntPtr*)materialptr3; // CMaterial*** -> CMaterial** (InfoForResourceTypeIMaterial2)
   }
-  public static void SpawnSkyboxReference(string prefab)
+  public static void SpawnSkybox(int slot, string prefab)
   {
+    if (prefab == null || prefab == "")
+    {
+      // directly spawn env_sky since prefab is empty so theres no need to create 3d skybox
+      Utilities.FindAllEntitiesByDesignerName<CSkyCamera>("sky_camera").ToList().ForEach(camera => camera.Remove());
+      var sky = Utilities.CreateEntityByName<CEnvSky>("env_sky")!;
+      sky.PrivateVScripts = slot.ToString();
+      sky.BrightnessScale = 1;
+      sky.StartDisabled = false;
+      sky.Enabled = true;
+      sky.TintColor = Color.Transparent;
+      sky.DispatchSpawn();
+      ChangeSkybox(slot, SkyboxChanger.GetInstance().Config.Skyboxs["@default"]);
+      return;
+    }
     IntPtr ptr = Marshal.AllocHGlobal(0x30);
     for (int i = 0; i < 0x30; i++)
     {

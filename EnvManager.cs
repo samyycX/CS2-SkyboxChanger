@@ -1,32 +1,40 @@
 using System.Drawing;
 using CounterStrikeSharp.API;
 using CounterStrikeSharp.API.Core;
+using CounterStrikeSharp.API.Modules.Memory;
 using CounterStrikeSharp.API.Modules.Utils;
 
 namespace SkyboxChanger;
 
-public class EnvData
-{
-  public Skybox? Skybox { get; set; }
-  public CEnvSky? Sky { get; set; }
-  public CSkyCamera? SkyCamera { get; set; }
-  public CSkyboxReference? SkyboxReference { get; set; }
-}
-
-public class SkyCameraData
-{
-  public required Vector Origin { get; set; }
-  public required short Scale { get; set; }
-}
 public class EnvManager
 {
   private string _DefaultPrefab = "";
 
+  private string _DefaultSkyMaterial = "";
+
   public int _NextSettingPlayer = -1;
-  public void OnPlayerJoin(int slot)
+  public unsafe void OnPlayerJoin(int slot)
   {
     _NextSettingPlayer = slot;
-    Helper.SpawnSkyboxReference(_DefaultPrefab);
+    if (_DefaultSkyMaterial == "")
+    {
+      foreach (var sky in Utilities.FindAllEntitiesByDesignerName<CEnvSky>("env_sky"))
+      {
+        if (sky.PrivateVScripts == null || sky.PrivateVScripts == "")
+        {
+          nint materialptr = *(IntPtr*)sky.SkyMaterial.Value;
+          var GetMaterialName = VirtualFunction.Create<IntPtr, string>(materialptr, 0);
+          string skyMaterial = GetMaterialName.Invoke(materialptr);
+          _DefaultSkyMaterial = skyMaterial;
+          SkyboxChanger.GetInstance().Config.Skyboxs.Add(
+            "@default",
+            new Skybox { Name = SkyboxChanger.GetInstance().Localizer["menu.defaultskybox"], Material = skyMaterial }
+          );
+          break;
+        }
+      };
+    }
+    Helper.SpawnSkybox(slot, _DefaultPrefab);
   }
 
   public void OnPlayerLeave(int slot)
@@ -47,10 +55,16 @@ public class EnvManager
     });
   }
 
+  public string GetDefaultSkyMaterial()
+  {
+    return _DefaultSkyMaterial;
+  }
+
   public void Clear()
   {
     _NextSettingPlayer = -1;
     _DefaultPrefab = "";
+    _DefaultSkyMaterial = "";
   }
 
   public void SetMapPrefab(string prefab)
@@ -91,7 +105,6 @@ public class EnvManager
   {
     var skys = Utilities.FindAllEntitiesByDesignerName<CEnvSky>("env_sky").ToList();
     var skycameras = Utilities.FindAllEntitiesByDesignerName<CSkyCamera>("sky_camera").ToList();
-    var skyreferences = Utilities.FindAllEntitiesByDesignerName<CSkyboxReference>("skybox_reference").ToList();
     foreach ((CCheckTransmitInfo info, CCSPlayerController? player) in infoList)
     {
       if (player == null) continue;

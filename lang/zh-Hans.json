@@ -5,6 +5,7 @@
   "menu.setforself": "为自己设置",
   "menu.brightness": "亮度",
   "menu.tintcolor": "颜色",
+  "menu.defaultskybox": "默认",
   "change.fail": "[{green}SkyboxChanger{default}] {red}修改至{0}失败。",
   "change.success": "[{green}SkyboxChanger{default}] {green}修改成功！"
 }

@@ -43,6 +43,11 @@ public class MyMenuManager
     Players.Remove(slot);
   }
 
+  public void ClearPlayer()
+  {
+    Players.Clear();
+  }
+
   public void ReloadPlayer()
   {
     foreach (var player in Utilities.GetPlayers())

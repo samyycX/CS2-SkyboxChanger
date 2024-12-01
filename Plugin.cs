@@ -13,7 +13,7 @@ namespace SkyboxChanger;
 public class SkyboxChanger : BasePlugin, IPluginConfig<SkyboxConfig>
 {
   public override string ModuleName => "Skybox Changer";
-  public override string ModuleVersion => "1.1.0";
+  public override string ModuleVersion => "1.1.1";
   public override string ModuleAuthor => "samyyc";
 
   public SkyboxConfig Config { get; set; } = new();
@@ -61,6 +61,18 @@ public class SkyboxChanger : BasePlugin, IPluginConfig<SkyboxConfig>
       EnvManager.OnPlayerJoin(@event.Userid.Slot);
       return HookResult.Continue;
     });
+    RegisterEventHandler<EventPlayerTeam>((@event, info) =>
+    {
+      if (@event.Team != (int)CsTeam.Spectator) return HookResult.Continue;
+      if (@event.Userid == null) return HookResult.Continue;
+      if (@event.Userid.IsBot || @event.Userid.IsHLTV) return HookResult.Continue;
+      foreach (var sky in Utilities.FindAllEntitiesByDesignerName<CEnvSky>("env_sky"))
+      {
+        if (sky.PrivateVScripts == @event.Userid.Slot.ToString()) return HookResult.Continue;
+      }
+      EnvManager.OnPlayerJoin(@event.Userid.Slot);
+      return HookResult.Continue;
+    });
     RegisterListener<Listeners.OnClientDisconnect>(slot =>
     {
       EnvManager.OnPlayerLeave(slot);
@@ -92,6 +104,10 @@ public class SkyboxChanger : BasePlugin, IPluginConfig<SkyboxConfig>
         MenuManager.RemovePlayer(@event.Userid.Slot);
       }
       return HookResult.Continue;
+    });
+    RegisterListener<Listeners.OnMapEnd>(() =>
+    {
+      MenuManager.ClearPlayer();
     });
     RegisterListener<Listeners.OnTick>(() =>
     {
@@ -147,7 +163,11 @@ public class SkyboxChanger : BasePlugin, IPluginConfig<SkyboxConfig>
     WasdMyMenu personalSkyboxSubmenu = new WasdMyMenu { Title = Localizer["menu.title"] };
     globalMenu.AddOption(new SubMenuOption { Text = Localizer["menu.title"], NextMenu = globalSkyboxSubmenu });
     personalMenu.AddOption(new SubMenuOption { Text = Localizer["menu.title"], NextMenu = personalSkyboxSubmenu });
-    Config.Skyboxs.Values.ToList().ForEach(skybox =>
+    var skyboxes = Config.Skyboxs.Values.ToList();
+    var def = Config.Skyboxs["@default"];
+    skyboxes.Remove(def);
+    skyboxes.Insert(0, def);
+    skyboxes.ForEach(skybox =>
     {
       globalSkyboxSubmenu.AddOption(new SelectOption
       {
@@ -187,10 +207,9 @@ public class SkyboxChanger : BasePlugin, IPluginConfig<SkyboxConfig>
 
     WasdMyMenu personalColorMenu = new WasdMyMenu { Title = Localizer["menu.tintcolor"] };
     WasdMyMenu globalColorMenu = new WasdMyMenu { Title = Localizer["menu.tintcolor"] };
-
     foreach (var knownColor in (KnownColor[])Enum.GetValues(typeof(KnownColor)))
     {
-      if (Convert.ToInt32(knownColor) <= 26) continue;
+      if (Color.FromKnownColor(knownColor).IsSystemColor) continue;
       personalColorMenu.AddOption(new SelectOption
       {
         Text = knownColor.ToString(),
