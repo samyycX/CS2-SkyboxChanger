@@ -8,26 +8,12 @@ using CounterStrikeSharp.API.Modules.Memory.DynamicFunctions;
 
 namespace SkyboxChanger;
 
-class SpawnPrefabEntitiesRebroadcastParam
-{
-  public nint A;
-  public float B;
-  public nint C;
-  public uint D;
-  public nint E;
-  public nint F;
-  public nint G;
-
-}
-
 public class Helper
 {
   public static MemoryFunctionVoid<nint, uint, nint, nint, nint>? SpawnPrefabEntities_Windows;
 
   // first param should be double, but ccs doesnt support that and it doesnt matter i think
   public static MemoryFunctionWithReturn<nint, float, nint, uint, nint, nint, nint, nint>? SpawnPrefabEntities_Linux;
-
-  private static SpawnPrefabEntitiesRebroadcastParam? param;
 
   public static void Initialize()
   {
