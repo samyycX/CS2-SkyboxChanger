@@ -1,0 +1,42 @@
+on:
+  workflow_dispatch:
+
+jobs:
+  build_linux:
+    runs-on: ubuntu-20.04
+    steps:
+    - name: Setup xmake
+      uses: xmake-io/github-action-setup-xmake@v1
+      with:
+        xmake-version: latest
+    - name: Checkout repository and submodules
+      uses: actions/checkout@v4
+      with:
+        submodules: recursive
+    - name: Build kvlib
+      working-directory: ./kvlib
+      run: xmake build -y linux
+    - name: Upload kvlib
+      uses: actions/upload-artifact@v4
+      with:
+        name: kvlib_linux
+        path: kvlib/build/linux/x86_64/release/kvlib.so
+  build_windows:
+    runs-on: windows-latest
+    steps:
+    - name: Setup xmake
+      uses: xmake-io/github-action-setup-xmake@v1
+      with:
+        xmake-version: latest
+    - name: Checkout repository and submodules
+      uses: actions/checkout@v4
+      with:
+        submodules: recursive
+    - name: Build kvlib
+      working-directory: ./kvlib
+      run: xmake build -y windows
+    - name: Upload kvlib
+      uses: actions/upload-artifact@v4
+      with:
+        name: kvlib_windows
+        path: kvlib/build/windows/x64/release/kvlib.dll
