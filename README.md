@@ -13,3 +13,6 @@ A counterstrikesharp plugin allow player to change their own skybox material, co
 
 ## Command
 - `!sky / !skybox` Open the select menu. (Need permission)
+
+## Configurations
+You can add your own skybox in the config file, there should be various examples in it.
