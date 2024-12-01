@@ -1,17 +1,11 @@
 ﻿using System.Drawing;
-using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using CounterStrikeSharp.API;
 using CounterStrikeSharp.API.Core;
 using CounterStrikeSharp.API.Core.Attributes.Registration;
 using CounterStrikeSharp.API.Modules.Admin;
 using CounterStrikeSharp.API.Modules.Commands;
-using CounterStrikeSharp.API.Modules.Cvars;
-using CounterStrikeSharp.API.Modules.Entities;
-using CounterStrikeSharp.API.Modules.Events;
-using CounterStrikeSharp.API.Modules.Memory;
 using CounterStrikeSharp.API.Modules.Memory.DynamicFunctions;
-using CounterStrikeSharp.API.Modules.Menu;
 using CounterStrikeSharp.API.Modules.Utils;
 
 namespace SkyboxChanger;
@@ -19,7 +13,7 @@ namespace SkyboxChanger;
 public class SkyboxChanger : BasePlugin, IPluginConfig<SkyboxConfig>
 {
   public override string ModuleName => "Skybox Changer";
-  public override string ModuleVersion => "1.0.1";
+  public override string ModuleVersion => "1.1.0";
   public override string ModuleAuthor => "samyyc";
 
   public SkyboxConfig Config { get; set; } = new();
@@ -30,52 +24,16 @@ public class SkyboxChanger : BasePlugin, IPluginConfig<SkyboxConfig>
 
   private static SkyboxChanger? _Instance { get; set; }
 
-  MemoryFunctionVoid<nint, uint, nint, nint, nint> a;
-
-  public CNetworkOriginCellCoordQuantizedVector origin;
+  public MemoryFunctionVoid? SpawnPrefabEntities { get; set; }
 
   public override unsafe void Load(bool hotReload)
   {
+    KvLib.SetDllImportResolver();
     _Instance = this;
     RegisterListener<Listeners.OnServerPrecacheResources>(OnServerPrecacheResources);
-    // RegisterListener<Listeners.CheckTransmit>(OnCheckTransmit);
-    // RegisterListener<Listeners.OnClientPutInServer>(EnvManager.OnPlayerJoin);
+    RegisterListener<Listeners.CheckTransmit>(OnCheckTransmit);
+    var server = Path.Join(Server.GameDirectory, Constants.GameBinaryPath, Constants.ModulePrefix + "server" + Constants.ModuleSuffix);
     RegisterListener<Listeners.OnMapEnd>(EnvManager.Clear);
-    RegisterListener<Listeners.OnEntitySpawned>((entity) =>
-    {
-      if (origin == null && entity.DesignerName == "skybox_reference")
-      {
-        origin = new CSkyboxReference(entity.Handle).CBodyComponent.SceneNode.Origin;
-      }
-      if (entity.DesignerName == "sky_camera")
-      {
-        if (entity.PrivateVScripts != null)
-        {
-          // new CSkyCamera(entity.Handle).Teleport(new Vector(0, 0, 0));
-          // new CSkyCamera(entity.Handle).AcceptInput("ActivateSkybox");
-          // Console.WriteLine("ACTIVATEDEDDDDDDDDDDDD");
-        }
-        else
-        {
-        }
-      }
-      if (entity.DesignerName == "env_sky")
-      {
-        if (entity.PrivateVScripts == null)
-        {
-
-          // entity.Remove();
-        }
-      }
-
-    });
-    // RegisterListener<Listeners.OnMapStart>((map) =>
-    // {
-    //   Utilities.FindAllEntitiesByDesignerName<CSkyCamera>("env_skycamera").ToList().ForEach(camera =>
-    //   {
-    //     camera.AcceptInput("Kill");
-    //   });
-    // });
     RegisterListener<Listeners.OnEntityCreated>((entity) =>
     {
       if (entity.DesignerName == "sky_camera" || entity.DesignerName == "env_sky")
@@ -92,9 +50,10 @@ public class SkyboxChanger : BasePlugin, IPluginConfig<SkyboxConfig>
     //   EnvManager.Initialize();
     //   return HookResult.Continue;
     // });
-    RegisterEventHandler<EventPlayerTeam>((@event, info) =>
+    RegisterEventHandler<EventPlayerSpawned>((@event, info) =>
     {
       if (@event.Userid == null) return HookResult.Continue;
+      if (@event.Userid.IsBot || @event.Userid.IsHLTV) return HookResult.Continue;
       foreach (var sky in Utilities.FindAllEntitiesByDesignerName<CEnvSky>("env_sky"))
       {
         if (sky.PrivateVScripts == @event.Userid.Slot.ToString()) return HookResult.Continue;
@@ -102,39 +61,12 @@ public class SkyboxChanger : BasePlugin, IPluginConfig<SkyboxConfig>
       EnvManager.OnPlayerJoin(@event.Userid.Slot);
       return HookResult.Continue;
     });
+    RegisterListener<Listeners.OnClientDisconnect>(slot =>
+    {
+      EnvManager.OnPlayerLeave(slot);
+    });
     InitializeMenuSystem(hotReload);
-  }
-
-  static nint aa;
-  static uint b;
-  static nint c;
-  static nint d;
-
-  static bool control = true;
-
-
-  [DllImport("mytest.dll")]
-  public static extern nint ExecKeyValue(nint p);
-
-  public unsafe HookResult Myhook(DynamicHook hook)
-  {
-    Console.WriteLine("A: " + hook.GetParam<nint>(0));
-    aa = hook.GetParam<nint>(0);
-    Console.WriteLine("B: " + hook.GetParam<uint>(1));
-    b = hook.GetParam<uint>(1);
-    Console.WriteLine("C: " + hook.GetParam<nint>(2));
-    c = hook.GetParam<nint>(2);
-    Console.WriteLine("D: " + hook.GetParam<nint>(3));
-    Console.WriteLine("DDREF = " + Unsafe.Read<ulong>((void*)hook.GetParam<nint>(3)));
-    d = hook.GetParam<nint>(3);
-    Console.WriteLine("E: " + hook.GetParam<nint>(4));
-    var vec = new CNetworkOriginCellCoordQuantizedVector(d);
-    Console.WriteLine(vec.Vector);
-    Console.WriteLine(vec.OutsideWorld);
-    ExecKeyValue(hook.GetParam<nint>(4));
-    Console.WriteLine();
-    // Console.WriteLine("F: " + hook.GetParam<uint>(5));
-    return HookResult.Continue;
+    Helper.Initialize();
   }
 
   private void OnCheckTransmit(CCheckTransmitInfoList infoList)
@@ -173,7 +105,6 @@ public class SkyboxChanger : BasePlugin, IPluginConfig<SkyboxConfig>
 
   public override void Unload(bool hotReload)
   {
-    // a.Unhook(Myhook, HookMode.Pre);
   }
 
   public static SkyboxChanger GetInstance()
@@ -212,14 +143,18 @@ public class SkyboxChanger : BasePlugin, IPluginConfig<SkyboxConfig>
   {
     WasdMyMenu globalMenu = new WasdMyMenu { Title = Localizer["menu.title"] };
     WasdMyMenu personalMenu = new WasdMyMenu { Title = Localizer["menu.title"] };
+    WasdMyMenu globalSkyboxSubmenu = new WasdMyMenu { Title = Localizer["menu.title"] };
+    WasdMyMenu personalSkyboxSubmenu = new WasdMyMenu { Title = Localizer["menu.title"] };
+    globalMenu.AddOption(new SubMenuOption { Text = Localizer["menu.title"], NextMenu = globalSkyboxSubmenu });
+    personalMenu.AddOption(new SubMenuOption { Text = Localizer["menu.title"], NextMenu = personalSkyboxSubmenu });
     Config.Skyboxs.Values.ToList().ForEach(skybox =>
     {
-      globalMenu.AddOption(new SelectOption
+      globalSkyboxSubmenu.AddOption(new SelectOption
       {
         Text = skybox.Name,
         Select = (player, option, menu) =>
         {
-          var result = EnvManager.SetGlobalSkybox(skybox);
+          var result = EnvManager.SetSkybox(-1, skybox);
           if (result)
           {
             player.PrintToChat(Localizer["change.success"]);
@@ -231,12 +166,12 @@ public class SkyboxChanger : BasePlugin, IPluginConfig<SkyboxConfig>
           option.IsSelected = true; // reverse
         }
       });
-      personalMenu.AddOption(new SelectOption
+      personalSkyboxSubmenu.AddOption(new SelectOption
       {
         Text = skybox.Name,
         Select = (player, option, menu) =>
         {
-          var result = EnvManager.SetSkybox(player, skybox);
+          var result = EnvManager.SetSkybox(player.Slot, skybox);
           if (result)
           {
             player.PrintToChat(Localizer["change.success"]);
@@ -249,6 +184,62 @@ public class SkyboxChanger : BasePlugin, IPluginConfig<SkyboxConfig>
         }
       });
     });
+
+    WasdMyMenu personalColorMenu = new WasdMyMenu { Title = Localizer["menu.tintcolor"] };
+    WasdMyMenu globalColorMenu = new WasdMyMenu { Title = Localizer["menu.tintcolor"] };
+
+    foreach (var knownColor in (KnownColor[])Enum.GetValues(typeof(KnownColor)))
+    {
+      if (Convert.ToInt32(knownColor) <= 26) continue;
+      personalColorMenu.AddOption(new SelectOption
+      {
+        Text = knownColor.ToString(),
+        Select = (player, option, menu) =>
+        {
+          EnvManager.SetTintColor(player.Slot, Color.FromKnownColor(knownColor));
+        }
+      });
+      globalColorMenu.AddOption(new SelectOption
+      {
+        Text = knownColor.ToString(),
+        Select = (player, option, menu) =>
+        {
+          EnvManager.SetTintColor(-1, Color.FromKnownColor(knownColor));
+        }
+      });
+    };
+
+
+
+    SubMenuOption personalColor = new SubMenuOption { Text = Localizer["menu.tintcolor"], NextMenu = personalColorMenu };
+    SubMenuOption globalColor = new SubMenuOption { Text = Localizer["menu.tintcolor"], NextMenu = globalColorMenu };
+    personalMenu.AddOption(personalColor);
+    globalMenu.AddOption(globalColor);
+
+    NumberOption personalBrightnessOption = new NumberOption
+    {
+      Text = $"- {Localizer["menu.brightness"]} @value +",
+      Value = 1,
+      OnUpdate = (player, option, menu, value) =>
+      {
+        EnvManager.SetBrightness(player.Slot, value);
+      }
+    };
+
+    NumberOption globalBrightnessOption = new NumberOption
+    {
+      Text = $"- {Localizer["menu.brightness"]} @value +",
+      Value = 1,
+      OnUpdate = (player, option, menu, value) =>
+      {
+        EnvManager.SetBrightness(-1, value);
+      }
+    };
+    personalMenu.AddOption(personalBrightnessOption);
+    globalMenu.AddOption(globalBrightnessOption);
+
+
+
     if (AdminManager.PlayerHasPermissions(player, ["@skybox/changeall"]))
     {
       WasdMyMenu targetMenu = new WasdMyMenu { Title = Localizer["menu.title"] };
@@ -261,19 +252,28 @@ public class SkyboxChanger : BasePlugin, IPluginConfig<SkyboxConfig>
       MenuManager.OpenMainMenu(player, personalMenu);
     }
   }
-
-  [DllImport("mytest.dll")]
-  public static extern nint GetKeyValue();
-  [DllImport("mytest.dll")]
-  public static extern void Exec(nint handle, nint a, ushort b, nint c, nint d);
-
-
-
+  [DllImport("libc.so.6", EntryPoint = "toupper")]
+  private static extern int CharUpper(int c);
+  [DllImport("kvlib.so")]
+  public static extern void NativeInitialize(nint pGameEntitySystem);
   [ConsoleCommand("css_test")]
   public unsafe void TestCommand(CCSPlayerController player, CommandInfo info)
   {
-    Helper.SpawnSkyboxReference();
+    var textToChange = "Hello Internet of Things!";
+    var inputCharacterArray = textToChange.ToCharArray();
 
+    // array of chars to hold the capitalised text
+    var outputCharacterArray = new char[inputCharacterArray.Length];
+
+    for (int i = 0; i < inputCharacterArray.Length; i++)
+    {
+      var charToByte = (byte)inputCharacterArray[i];
+      outputCharacterArray[i] = (char)CharUpper(charToByte);
+    }
+
+    Console.WriteLine($"Original text is {textToChange}");
+    Console.WriteLine($"Changed text is {new string(outputCharacterArray)}");
+    NativeInitialize(0);
     // a.Unhook(Myhook, HookMode.Pre);
     // a.Invoke
     // control = true;
@@ -357,13 +357,4 @@ public class SkyboxChanger : BasePlugin, IPluginConfig<SkyboxConfig>
             camera.Remove();
           });
   }
-}
-
-[StructLayout(LayoutKind.Sequential)]
-struct Unk
-{
-  public uint unk1;
-  public uint pad1;
-  public uint pad2;
-  public uint pad3;
 }

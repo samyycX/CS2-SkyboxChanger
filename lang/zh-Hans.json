@@ -3,6 +3,8 @@
   "menu.instruction": "[W/S] 滚动 - [D] 选择 - [A] 返回 - [Tab] 关闭",
   "menu.setforall": "为所有人设置",
   "menu.setforself": "为自己设置",
+  "menu.brightness": "亮度",
+  "menu.tintcolor": "颜色",
   "change.fail": "[{green}SkyboxChanger{default}] {red}修改至{0}失败。",
   "change.success": "[{green}SkyboxChanger{default}] {green}修改成功！"
 }

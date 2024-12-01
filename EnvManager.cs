@@ -22,34 +22,72 @@ public class SkyCameraData
 }
 public class EnvManager
 {
-  private EnvData[]? _Skys;
-  private string _DefaultSkyMaterial = "";
-  private SkyCameraData? _DefaultSkyCamera;
+  private string _DefaultPrefab = "";
 
   public int _NextSettingPlayer = -1;
   public void OnPlayerJoin(int slot)
   {
     _NextSettingPlayer = slot;
-    // Helper.SpawnSkyboxReference();
+    Helper.SpawnSkyboxReference(_DefaultPrefab);
+  }
+
+  public void OnPlayerLeave(int slot)
+  {
+    Utilities.FindAllEntitiesByDesignerName<CEnvSky>("env_sky").ToList().ForEach(sky =>
+    {
+      if (sky.PrivateVScripts == slot.ToString())
+      {
+        sky.Remove();
+      }
+    });
+    Utilities.FindAllEntitiesByDesignerName<CSkyCamera>("sky_camera").ToList().ForEach(sky =>
+    {
+      if (sky.PrivateVScripts == slot.ToString())
+      {
+        sky.Remove();
+      }
+    });
   }
 
   public void Clear()
   {
-    _DefaultSkyMaterial = "";
     _NextSettingPlayer = -1;
-    _Skys = new EnvData[Server.MaxPlayers];
+    _DefaultPrefab = "";
   }
 
-  public bool SetSkybox(CCSPlayerController player, Skybox skybox)
+  public void SetMapPrefab(string prefab)
   {
-    return Helper.ChangeSkybox(player.Slot, skybox);
+    if (_DefaultPrefab != "") return;
+    _DefaultPrefab = prefab;
   }
 
-  public bool SetGlobalSkybox(Skybox skybox)
+  public bool SetSkybox(int slot, Skybox skybox)
   {
-    // _NextChangingPlayer = -1;
-    // return Helper.ChangeSkybox(skybox);
-    return true;
+    return Helper.ChangeSkybox(slot, skybox);
+  }
+
+  public void SetBrightness(int slot, float value)
+  {
+    Utilities.FindAllEntitiesByDesignerName<CEnvSky>("env_sky").ToList().ForEach(sky =>
+    {
+      if (slot == -1 || sky.PrivateVScripts == slot.ToString())
+      {
+        sky.BrightnessScale = value;
+        Utilities.SetStateChanged(sky, "CEnvSky", "m_flBrightnessScale");
+      }
+    });
+  }
+
+  public void SetTintColor(int slot, Color color)
+  {
+    Utilities.FindAllEntitiesByDesignerName<CEnvSky>("env_sky").ToList().ForEach(sky =>
+    {
+      if (slot == -1 || sky.PrivateVScripts == slot.ToString())
+      {
+        sky.TintColor = color;
+        Utilities.SetStateChanged(sky, "CEnvSky", "m_vTintColor");
+      }
+    });
   }
   public void OnCheckTransmit(CCheckTransmitInfoList infoList)
   {
@@ -61,7 +99,6 @@ public class EnvManager
       if (player == null) continue;
       skycameras.ForEach(skyCamera =>
         {
-          // skyCamera.PrivateVScripts != null && 
           if (skyCamera.PrivateVScripts != null && skyCamera.PrivateVScripts != player.Slot.ToString())
           {
             info.TransmitAlways.Remove(skyCamera.Index);
@@ -75,11 +112,6 @@ public class EnvManager
           info.TransmitAlways.Remove(sky.Index);
           info.TransmitEntities.Remove(sky.Index);
         }
-      });
-      skyreferences.ForEach(skyboxReference =>
-      {
-        info.TransmitAlways.Remove(skyboxReference.Index);
-        info.TransmitEntities.Remove(skyboxReference.Index);
       });
     }
   }

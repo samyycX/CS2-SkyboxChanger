@@ -9,8 +9,9 @@
     <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <BaseOutputPath>build\</BaseOutputPath>
-    <OutputPath>$(BaseOutputPath)SkyboxChanger</OutputPath>
+    <BaseOutputPath>build\addons\counterstrikesharp\</BaseOutputPath>
+    <OutputPath>$(BaseOutputPath)plugins\SkyboxChanger\</OutputPath>
+    <GameDataPath>$(BaseOutputPath)gamedata\</GameDataPath>
   </PropertyGroup>
 
   <ItemGroup>
@@ -20,7 +21,13 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Update="lang\**\*.*" CopyToOutputDirectory="PreserveNewest" />
+    <LangFiles Include="lang/*.*" />
+    <GameDataFiles Include="gamedata/*.*" />
   </ItemGroup>
+
+  <Target Name="PostBuild" AfterTargets="Build">
+		<Copy SourceFiles="@(LangFiles)" DestinationFolder="$(OutputPath)\lang" />
+		<Copy SourceFiles="@(GameDataFiles)" DestinationFolder="$(GameDataPath)" />
+	</Target>
 
 </Project>

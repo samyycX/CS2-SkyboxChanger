@@ -8,104 +8,10 @@ public abstract class MenuOption
   public string Text { get; set; } = "";
 
   public abstract void Next(CCSPlayerController player, WasdMyMenu menu);
+  public abstract bool Prev(CCSPlayerController player, WasdMyMenu menu);
 
   public virtual void Rerender(CCSPlayerController player, WasdMyMenu menu) { }
 }
-
-public class SubMenuOption : MenuOption
-{
-  public required WasdMyMenu NextMenu { get; set; }
-  public override void Next(CCSPlayerController player, WasdMyMenu menu)
-  {
-    SkyboxChanger.GetInstance().MenuManager.OpenSubMenu(player, NextMenu);
-  }
-
-  public override void Rerender(CCSPlayerController player, WasdMyMenu menu)
-  {
-    NextMenu.Rerender(player);
-  }
-}
-
-public class SelectOption : MenuOption
-{
-  public Action<CCSPlayerController, SelectOption, WasdMyMenu> Select { get; set; } = (_, _, _) => { };
-
-  public Action<CCSPlayerController, SelectOption, WasdMyMenu> RerenderAction { get; set; } = (_, _, _) => { };
-
-  public Dictionary<string, dynamic> AdditionalProperties = new();
-  public bool IsSelected = false;
-
-  public override void Next(CCSPlayerController player, WasdMyMenu menu)
-  {
-    Select(player, this, menu);
-    IsSelected = !IsSelected;
-    if (IsSelected)
-    {
-      menu.Options.ForEach(option =>
-      {
-        if (option != this && option is SelectOption)
-        {
-          ((SelectOption)option).IsSelected = false;
-        }
-      });
-    }
-  }
-
-  public override void Rerender(CCSPlayerController player, WasdMyMenu menu)
-  {
-    RerenderAction(player, this, menu);
-  }
-
-  public SelectOption SetAdditionalProperty(string key, dynamic value)
-  {
-    AdditionalProperties[key] = value;
-    return this;
-  }
-}
-
-public class UncancellableSelectOption : SelectOption
-{
-  public override void Next(CCSPlayerController player, WasdMyMenu menu)
-  {
-    Select(player, this, menu);
-    IsSelected = true;
-    menu.Options.ForEach(option =>
-    {
-      if (option != this && option is UncancellableSelectOption)
-      {
-        ((UncancellableSelectOption)option).IsSelected = false;
-      }
-    });
-  }
-
-  public new UncancellableSelectOption SetAdditionalProperty(string key, dynamic value)
-  {
-    AdditionalProperties[key] = value;
-    return this;
-  }
-}
-
-
-public class MultiSelectOption : MenuOption
-{
-  public Action<CCSPlayerController, MultiSelectOption, WasdMyMenu> Select { get; set; } = (_, _, _) => { };
-
-  public Action<CCSPlayerController, MultiSelectOption, WasdMyMenu> RerenderAction { get; set; } = (_, _, _) => { };
-
-  public bool IsSelected = false;
-
-  public override void Next(CCSPlayerController player, WasdMyMenu menu)
-  {
-    Select(player, this, menu);
-    IsSelected = !IsSelected;
-  }
-
-  public override void Rerender(CCSPlayerController player, WasdMyMenu menu)
-  {
-    RerenderAction(player, this, menu);
-  }
-}
-
 
 public class WasdMyMenu
 {
@@ -195,6 +101,15 @@ public class WasdMyMenu
     Options[SelectedOption].Next(player, this);
   }
 
+  public bool Prev(CCSPlayerController player)
+  {
+    if (Options.Count == 0)
+    {
+      return false;
+    }
+    return Options[SelectedOption].Prev(player, this);
+  }
+
   public void Rerender(CCSPlayerController player)
   {
     Options.ForEach(option => option.Rerender(player, this));
@@ -212,22 +127,31 @@ public class WasdMyMenu
         builder.AppendLine("<br>");
         continue;
       }
+      var text = Options[i].Text;
+      if (Options[i] is NumberOption)
+      {
+        var value = ((NumberOption)Options[i]).Value;
+
+        text = text.Replace("@value", value.ToString("F1"));
+
+      }
+
       if (i == SelectedOption)
       {
-        builder.AppendLine($"<font color='#ccacfc'>⋆ {Options[i].Text}</font> <br>");
+        builder.AppendLine($"<font color='#ccacfc'>⋆ {text}</font> <br>");
         continue;
       }
       if (Options[i] is SelectOption && ((SelectOption)Options[i]).IsSelected)
       {
-        builder.AppendLine($"<font color='#7219f7'>⋆ {Options[i].Text}</font> <br>");
+        builder.AppendLine($"<font color='#7219f7'>⋆ {text}</font> <br>");
         continue;
       }
       if (Options[i] is MultiSelectOption && ((MultiSelectOption)Options[i]).IsSelected)
       {
-        builder.AppendLine($"<font color='#7219f7'>⋆ {Options[i].Text}</font> <br>");
+        builder.AppendLine($"<font color='#7219f7'>⋆ {text}</font> <br>");
         continue;
       }
-      builder.AppendLine($"<font color='white'>{Options[i].Text}</font> <br>");
+      builder.AppendLine($"<font color='white'>{text}</font> <br>");
 
     }
 

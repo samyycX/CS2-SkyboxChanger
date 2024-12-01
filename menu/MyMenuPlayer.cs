@@ -57,7 +57,9 @@ public class MyMenuPlayer
 
   public void Prev()
   {
-    if (Menus.Count > 1)
+    bool preventClose = Menus.Peek().Prev(Player);
+    if (preventClose && HasMenu()) Render();
+    if (!preventClose && Menus.Count > 1)
     {
       CloseSubMenu();
     }

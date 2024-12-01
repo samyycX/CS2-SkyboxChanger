@@ -3,6 +3,8 @@
   "menu.instruction": "[W/S] Scroll - [D] Select - [A] Back - [Tab] Close",
   "menu.setforall": "Set for all players",
   "menu.setforself": "Set for yourself",
+  "menu.brightness": "Brightness",
+  "menu.tintcolor": "Tint Color",
   "change.fail": "[{green}SkyboxChanger{default}] {red}Failed to change to {0}.",
   "change.success": "[{green}SkyboxChanger{default}] {green}Success!"
 }

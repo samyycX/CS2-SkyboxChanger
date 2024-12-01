@@ -1,75 +1,133 @@
 add_rules("mode.debug", "mode.release")
 
-target("kvlib")
+SDK_PATH = "./.deps/hl2sdk"
+MM_PATH = "./.deps/metamod-source"
+
+target("windows")
+    set_filename("kvlib.dll")
     set_kind("shared")
-    add_files("src/*.cpp")
+    set_plat("windows")
+    add_files("src/**.cpp")
+    add_headerfiles("src/**.h")
+    add_defines("PLATFORM_WINDOWS")
 
---
--- If you want to known more usage about xmake, please see https://xmake.io
---
--- ## FAQ
---
--- You can enter the project directory firstly before building project.
---
---   $ cd projectdir
---
--- 1. How to build project?
---
---   $ xmake
---
--- 2. How to configure project?
---
---   $ xmake f -p [macosx|linux|iphoneos ..] -a [x86_64|i386|arm64 ..] -m [debug|release]
---
--- 3. Where is the build output directory?
---
---   The default output directory is `./build` and you can configure the output directory.
---
---   $ xmake f -o outputdir
---   $ xmake
---
--- 4. How to run and debug target after building project?
---
---   $ xmake run [targetname]
---   $ xmake run -d [targetname]
---
--- 5. How to install target to the system directory or other output directory?
---
---   $ xmake install
---   $ xmake install -o installdir
---
--- 6. Add some frequently-used compilation flags in xmake.lua
---
--- @code
---    -- add debug and release modes
---    add_rules("mode.debug", "mode.release")
---
---    -- add macro definition
---    add_defines("NDEBUG", "_GNU_SOURCE=1")
---
---    -- set warning all as error
---    set_warnings("all", "error")
---
---    -- set language: c99, c++11
---    set_languages("c99", "c++11")
---
---    -- set optimization: none, faster, fastest, smallest
---    set_optimize("fastest")
---
---    -- add include search directories
---    add_includedirs("/usr/include", "/usr/local/include")
---
---    -- add link libraries and search directories
---    add_links("tbox")
---    add_linkdirs("/usr/local/lib", "/usr/lib")
---
---    -- add system link libraries
---    add_syslinks("z", "pthread")
---
---    -- add compilation and link flags
---    add_cxflags("-stdnolib", "-fno-strict-aliasing")
---    add_ldflags("-L/usr/local/lib", "-lpthread", {force = true})
---
--- @endcode
---
+    add_files({
+        SDK_PATH.."/tier1/convar.cpp",
+        SDK_PATH.."/public/tier0/memoverride.cpp",
+        SDK_PATH.."/tier1/generichash.cpp",
+        SDK_PATH.."/entity2/entitysystem.cpp",
+        SDK_PATH.."/entity2/entityidentity.cpp",
+        SDK_PATH.."/entity2/entitykeyvalues.cpp",
+        SDK_PATH.."/tier1/keyvalues3.cpp",
+    })
 
+    add_links({
+        SDK_PATH.."/lib/public/win64/2015/libprotobuf.lib",
+        SDK_PATH.."/lib/public/win64/tier0.lib",
+        SDK_PATH.."/lib/public/win64/tier1.lib",
+        SDK_PATH.."/lib/public/win64/interfaces.lib",
+        SDK_PATH.."/lib/public/win64/mathlib.lib",
+    })
+
+    
+    -- add_links("psapi");
+    -- add_files("src/utils/plat_win.cpp");
+
+    add_includedirs({
+        "src",
+        -- sdk
+        SDK_PATH,
+        SDK_PATH.."/thirdparty/protobuf-3.21.8/src",
+        SDK_PATH.."/common",
+        SDK_PATH.."/game/shared",
+        SDK_PATH.."/game/server",
+        SDK_PATH.."/public",
+        SDK_PATH.."/public/engine",
+        SDK_PATH.."/public/mathlib",
+        SDK_PATH.."/public/tier0",
+        SDK_PATH.."/public/tier1",
+        SDK_PATH.."/public/entity2",
+        SDK_PATH.."/public/game/server",
+        -- metamod
+        MM_PATH.."/core",
+        MM_PATH.."/core/sourcehook",
+    })
+
+    add_defines({
+        "COMPILER_MSVC",
+        "COMPILER_MSVC64",
+        "PLATFORM_64BITS",
+        "X64BITS",
+        "WIN32",
+        "WINDOWS",
+        "CRT_SECURE_NO_WARNINGS",
+        "CRT_SECURE_NO_DEPRECATE",
+        "CRT_NONSTDC_NO_DEPRECATE",
+        "_MBCS",
+        "META_IS_SOURCE2"
+    })
+
+    set_languages("cxx20")
+
+
+
+target("linux")
+    set_filename("kvlib.so")
+    set_kind("shared")
+    set_plat("linux")
+    add_defines("PLATFORM_LINUX")
+    add_files("src/**.cpp")
+    add_headerfiles("src/**.h")
+    add_cxxflags("-fvisibility=default")
+
+    add_files({
+        SDK_PATH.."/tier1/convar.cpp",
+        SDK_PATH.."/public/tier0/memoverride.cpp",
+        SDK_PATH.."/tier1/generichash.cpp",
+        SDK_PATH.."/entity2/entitysystem.cpp",
+        SDK_PATH.."/entity2/entityidentity.cpp",
+        SDK_PATH.."/entity2/entitykeyvalues.cpp",
+        SDK_PATH.."/tier1/keyvalues3.cpp",
+    })
+
+    add_links({
+        SDK_PATH.."/lib/linux64/release/libprotobuf.a",
+        SDK_PATH.."/lib/linux64/libtier0.so",
+        SDK_PATH.."/lib/linux64/tier1.a",
+        SDK_PATH.."/lib/linux64/interfaces.a",
+        SDK_PATH.."/lib/linux64/mathlib.a",
+    })
+
+    
+    -- add_links("psapi");
+    -- add_files("src/utils/plat_win.cpp");
+
+    add_includedirs({
+        "src",
+        -- sdk
+        SDK_PATH,
+        SDK_PATH.."/thirdparty/protobuf-3.21.8/src",
+        SDK_PATH.."/common",
+        SDK_PATH.."/game/shared",
+        SDK_PATH.."/game/server",
+        SDK_PATH.."/public",
+        SDK_PATH.."/public/engine",
+        SDK_PATH.."/public/mathlib",
+        SDK_PATH.."/public/tier0",
+        SDK_PATH.."/public/tier1",
+        SDK_PATH.."/public/entity2",
+        SDK_PATH.."/public/game/server",
+    })
+
+    add_defines({
+        "_LINUX",
+        "LINUX",
+        "POSIX",
+        "GNUC",
+        "COMPILER_GCC",
+        "PLATFORM_64BITS",
+        "META_IS_SOURCE2",
+        "_GLIBCXX_USE_CXX11_ABI=0"
+    })
+
+    set_languages("cxx20")
