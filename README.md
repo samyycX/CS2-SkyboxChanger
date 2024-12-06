@@ -9,10 +9,9 @@ A counterstrikesharp plugin allow player to change their own skybox material, co
 
 ## Permissions
 - `@skybox/change` Allow the player to change their own skybox.
-- `@skybox/changeall` Allow the player to change all and their own skybox.
 
 ## Command
 - `!sky / !skybox` Open the select menu. (Need permission)
 
 ## Configurations
-You can add your own skybox in the config file, there should be various examples in it.
+You can add your own skybox in the config file, there should be various examples in it. See [Wiki](https://github.com/samyycX/CS2-SkyboxChanger/wiki) for further information.
