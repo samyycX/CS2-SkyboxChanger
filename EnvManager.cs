@@ -10,13 +10,11 @@ public class EnvManager
 {
   private string _DefaultPrefab = "";
 
-  private string _DefaultSkyMaterial = "";
-
   public int _NextSettingPlayer = -1;
   public unsafe void OnPlayerJoin(int slot)
   {
     _NextSettingPlayer = slot;
-    if (_DefaultSkyMaterial == "")
+    if (!SkyboxChanger.GetInstance().Config.Skyboxs.ContainsKey(""))
     {
       foreach (var sky in Utilities.FindAllEntitiesByDesignerName<CEnvSky>("env_sky"))
       {
@@ -25,9 +23,8 @@ public class EnvManager
           nint materialptr = *(IntPtr*)sky.SkyMaterial.Value;
           var GetMaterialName = VirtualFunction.Create<IntPtr, string>(materialptr, 0);
           string skyMaterial = GetMaterialName.Invoke(materialptr);
-          _DefaultSkyMaterial = skyMaterial;
           SkyboxChanger.GetInstance().Config.Skyboxs.Add(
-            "@default",
+            "",
             new Skybox { Name = SkyboxChanger.GetInstance().Localizer["menu.defaultskybox"], Material = skyMaterial }
           );
           break;
@@ -55,16 +52,11 @@ public class EnvManager
     });
   }
 
-  public string GetDefaultSkyMaterial()
-  {
-    return _DefaultSkyMaterial;
-  }
-
   public void Clear()
   {
     _NextSettingPlayer = -1;
     _DefaultPrefab = "";
-    _DefaultSkyMaterial = "";
+    SkyboxChanger.GetInstance().Config.Skyboxs.Remove("");
   }
 
   public void SetMapPrefab(string prefab)

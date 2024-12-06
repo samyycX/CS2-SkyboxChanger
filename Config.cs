@@ -8,7 +8,32 @@ public class Skybox
 
   [JsonPropertyName("material")]
   public string Material { get; set; } = "";
+  [JsonPropertyName("brightness")]
+  public float? Brightness { get; set; } = null;
 
+  [JsonPropertyName("color")]
+  public string? Color { get; set; } = null;
+
+  [JsonPropertyName("permissions")]
+  public string[]? Permissions { get; set; } = null;
+  [JsonPropertyName("permissionsOr")]
+  public string[]? PermissionsOr { get; set; } = null;
+
+}
+
+public class DatabaseConfig
+{
+
+  public string Host { get; set; } = "127.0.0.1";
+
+  public int Port { get; set; } = 3306;
+  public string User { get; set; } = "root";
+
+  public string Password { get; set; } = "";
+
+  public string Database { get; set; } = "cs2";
+
+  public string TablePrefix { get; set; } = "cs2_skyboxchanger_";
 }
 
 public class SkyboxConfig : BasePluginConfig
@@ -33,4 +58,14 @@ public class SkyboxConfig : BasePluginConfig
     { "sky_hr_aztec_02_lighting", new Skybox { Name = "sky_hr_aztec_02_lighting", Material = "materials/skybox/sky_hr_aztec_02_lighting.vmat" } },
     { "sky_overcast_01", new Skybox { Name = "sky_overcast_01", Material = "materials/skybox/sky_overcast_01.vmat" } },
   };
+
+  [JsonPropertyName("Database")]
+  public DatabaseConfig Database { get; set; } = new();
+
+  [JsonPropertyName("MapDefault")]
+  public Dictionary<string, string>? MapDefault { get; set; } = new();
+
+
+  [JsonPropertyName("Version")]
+  public override int Version { get; set; } = 2;
 }

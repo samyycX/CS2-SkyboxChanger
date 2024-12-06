@@ -30,6 +30,10 @@ public class MyMenuManager
 
   public void AddPlayer(int slot, MyMenuPlayer menuPlayer)
   {
+    if (Players.ContainsKey(slot))
+    {
+      Players.Remove(slot);
+    }
     Players.Add(slot, menuPlayer);
   }
 

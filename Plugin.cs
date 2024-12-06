@@ -13,7 +13,7 @@ namespace SkyboxChanger;
 public class SkyboxChanger : BasePlugin, IPluginConfig<SkyboxConfig>
 {
   public override string ModuleName => "Skybox Changer";
-  public override string ModuleVersion => "1.1.1";
+  public override string ModuleVersion => "1.2.0";
   public override string ModuleAuthor => "samyyc";
 
   public SkyboxConfig Config { get; set; } = new();
@@ -22,6 +22,7 @@ public class SkyboxChanger : BasePlugin, IPluginConfig<SkyboxConfig>
 
   public required EnvManager EnvManager { get; set; } = new();
 
+  public required Service Service { get; set; }
   private static SkyboxChanger? _Instance { get; set; }
 
   public MemoryFunctionVoid? SpawnPrefabEntities { get; set; }
@@ -32,8 +33,24 @@ public class SkyboxChanger : BasePlugin, IPluginConfig<SkyboxConfig>
     _Instance = this;
     RegisterListener<Listeners.OnServerPrecacheResources>(OnServerPrecacheResources);
     RegisterListener<Listeners.CheckTransmit>(OnCheckTransmit);
-    var server = Path.Join(Server.GameDirectory, Constants.GameBinaryPath, Constants.ModulePrefix + "server" + Constants.ModuleSuffix);
-    RegisterListener<Listeners.OnMapEnd>(EnvManager.Clear);
+    RegisterListener<Listeners.OnMapStart>((map) =>
+    {
+      var skybox = Service.GetMapDefaultSkybox(map);
+      if (skybox != null)
+      {
+        var defaultSkybox = new Skybox
+        {
+          Name = Localizer["menu.defaultskybox"],
+          Material = skybox.Material,
+        };
+        Config.Skyboxs.Add("", defaultSkybox);
+      }
+    });
+    RegisterListener<Listeners.OnMapEnd>(() =>
+    {
+      EnvManager.Clear();
+      Service.Save();
+    });
     RegisterListener<Listeners.OnEntityCreated>((entity) =>
     {
       if (entity.DesignerName == "sky_camera" || entity.DesignerName == "env_sky")
@@ -41,15 +58,25 @@ public class SkyboxChanger : BasePlugin, IPluginConfig<SkyboxConfig>
         if (EnvManager._NextSettingPlayer != -1)
         {
           entity.PrivateVScripts = EnvManager._NextSettingPlayer.ToString();
+          if (entity.DesignerName == "env_sky")
+          {
+            Server.NextFrame(() =>
+            {
+              var player = Utilities.GetPlayerFromSlot(EnvManager._NextSettingPlayer)!;
+              var skybox = Service.GetPlayerSkybox(player);
+              var brightness = Service.GetPlayerBrightness(player);
+              var color = Service.GetPlayerColor(player);
+              if (skybox != null)
+              {
+                EnvManager.SetSkybox(EnvManager._NextSettingPlayer, skybox);
+              }
+              EnvManager.SetBrightness(EnvManager._NextSettingPlayer, brightness);
+              EnvManager.SetTintColor(EnvManager._NextSettingPlayer, color);
+            });
+          }
         }
       }
     });
-    // a.Hook(Myhook, HookMode.Pre);
-    // RegisterEventHandler<EventRoundStart>((@event, info) =>
-    // {
-    //   EnvManager.Initialize();
-    //   return HookResult.Continue;
-    // });
     RegisterEventHandler<EventPlayerSpawned>((@event, info) =>
     {
       if (@event.Userid == null) return HookResult.Continue;
@@ -93,7 +120,6 @@ public class SkyboxChanger : BasePlugin, IPluginConfig<SkyboxConfig>
       if (@event.Userid != null)
       {
         MenuManager.AddPlayer(@event.Userid.Slot, new MyMenuPlayer { Player = @event.Userid, Buttons = 0 });
-        Console.WriteLine(MenuManager.GetPlayer(0));
       }
       return HookResult.Continue;
     });
@@ -121,6 +147,7 @@ public class SkyboxChanger : BasePlugin, IPluginConfig<SkyboxConfig>
 
   public override void Unload(bool hotReload)
   {
+    Service.Save();
   }
 
   public static SkyboxChanger GetInstance()
@@ -137,6 +164,11 @@ public class SkyboxChanger : BasePlugin, IPluginConfig<SkyboxConfig>
   public void OnConfigParsed(SkyboxConfig config)
   {
     Config = config;
+    if (Config.Version == 1)
+    {
+      throw new Exception("Please update your config version. Changed: 'Database' field.");
+    }
+    Service = new Service(this, Config.Database.Host, Config.Database.Port, Config.Database.User, Config.Database.Password, Config.Database.Database, Config.Database.TablePrefix);
   }
 
   public void OnServerPrecacheResources(ResourceManifest manifest)
@@ -157,41 +189,22 @@ public class SkyboxChanger : BasePlugin, IPluginConfig<SkyboxConfig>
   [RequiresPermissionsOr("@skybox/change", "@skybox/changeall")]
   public unsafe void SkyboxCommand(CCSPlayerController player, CommandInfo info)
   {
-    WasdMyMenu globalMenu = new WasdMyMenu { Title = Localizer["menu.title"] };
     WasdMyMenu personalMenu = new WasdMyMenu { Title = Localizer["menu.title"] };
-    WasdMyMenu globalSkyboxSubmenu = new WasdMyMenu { Title = Localizer["menu.title"] };
     WasdMyMenu personalSkyboxSubmenu = new WasdMyMenu { Title = Localizer["menu.title"] };
-    globalMenu.AddOption(new SubMenuOption { Text = Localizer["menu.title"], NextMenu = globalSkyboxSubmenu });
     personalMenu.AddOption(new SubMenuOption { Text = Localizer["menu.title"], NextMenu = personalSkyboxSubmenu });
-    var skyboxes = Config.Skyboxs.Values.ToList();
-    var def = Config.Skyboxs["@default"];
-    skyboxes.Remove(def);
-    skyboxes.Insert(0, def);
+    var skyboxes = Config.Skyboxs.ToList();
+    var def = Config.Skyboxs[""];
+    skyboxes.RemoveAll(kv => kv.Key == "");
+    skyboxes.Insert(0, new KeyValuePair<string, Skybox>("", def));
     skyboxes.ForEach(skybox =>
     {
-      globalSkyboxSubmenu.AddOption(new SelectOption
-      {
-        Text = skybox.Name,
-        Select = (player, option, menu) =>
-        {
-          var result = EnvManager.SetSkybox(-1, skybox);
-          if (result)
-          {
-            player.PrintToChat(Localizer["change.success"]);
-          }
-          else
-          {
-            player.PrintToChat(Localizer["change.failed"]);
-          }
-          option.IsSelected = true; // reverse
-        }
-      });
+      if (!Helper.PlayerHasPermission(player, skybox.Value.Permissions, skybox.Value.PermissionsOr)) return;
       personalSkyboxSubmenu.AddOption(new SelectOption
       {
-        Text = skybox.Name,
+        Text = skybox.Value.Name,
         Select = (player, option, menu) =>
         {
-          var result = EnvManager.SetSkybox(player.Slot, skybox);
+          var result = Service.SetSkybox(player, skybox.Key);
           if (result)
           {
             player.PrintToChat(Localizer["change.success"]);
@@ -206,7 +219,6 @@ public class SkyboxChanger : BasePlugin, IPluginConfig<SkyboxConfig>
     });
 
     WasdMyMenu personalColorMenu = new WasdMyMenu { Title = Localizer["menu.tintcolor"] };
-    WasdMyMenu globalColorMenu = new WasdMyMenu { Title = Localizer["menu.tintcolor"] };
     foreach (var knownColor in (KnownColor[])Enum.GetValues(typeof(KnownColor)))
     {
       if (Color.FromKnownColor(knownColor).IsSystemColor) continue;
@@ -215,15 +227,7 @@ public class SkyboxChanger : BasePlugin, IPluginConfig<SkyboxConfig>
         Text = knownColor.ToString(),
         Select = (player, option, menu) =>
         {
-          EnvManager.SetTintColor(player.Slot, Color.FromKnownColor(knownColor));
-        }
-      });
-      globalColorMenu.AddOption(new SelectOption
-      {
-        Text = knownColor.ToString(),
-        Select = (player, option, menu) =>
-        {
-          EnvManager.SetTintColor(-1, Color.FromKnownColor(knownColor));
+          Service.SetTintColor(player, Color.FromKnownColor(knownColor));
         }
       });
     };
@@ -231,44 +235,18 @@ public class SkyboxChanger : BasePlugin, IPluginConfig<SkyboxConfig>
 
 
     SubMenuOption personalColor = new SubMenuOption { Text = Localizer["menu.tintcolor"], NextMenu = personalColorMenu };
-    SubMenuOption globalColor = new SubMenuOption { Text = Localizer["menu.tintcolor"], NextMenu = globalColorMenu };
     personalMenu.AddOption(personalColor);
-    globalMenu.AddOption(globalColor);
 
     NumberOption personalBrightnessOption = new NumberOption
     {
       Text = $"- {Localizer["menu.brightness"]} @value +",
-      Value = 1,
+      Value = Service.GetPlayerBrightness(player),
       OnUpdate = (player, option, menu, value) =>
       {
-        EnvManager.SetBrightness(player.Slot, value);
-      }
-    };
-
-    NumberOption globalBrightnessOption = new NumberOption
-    {
-      Text = $"- {Localizer["menu.brightness"]} @value +",
-      Value = 1,
-      OnUpdate = (player, option, menu, value) =>
-      {
-        EnvManager.SetBrightness(-1, value);
+        Service.SetBrightness(player, value);
       }
     };
     personalMenu.AddOption(personalBrightnessOption);
-    globalMenu.AddOption(globalBrightnessOption);
-
-
-
-    if (AdminManager.PlayerHasPermissions(player, ["@skybox/changeall"]))
-    {
-      WasdMyMenu targetMenu = new WasdMyMenu { Title = Localizer["menu.title"] };
-      targetMenu.AddOption(new SubMenuOption { Text = Localizer["menu.setforall"], NextMenu = globalMenu });
-      targetMenu.AddOption(new SubMenuOption { Text = Localizer["menu.setforself"], NextMenu = personalMenu });
-      MenuManager.OpenMainMenu(player, targetMenu);
-    }
-    else
-    {
-      MenuManager.OpenMainMenu(player, personalMenu);
-    }
+    MenuManager.OpenMainMenu(player, personalMenu);
   }
 }

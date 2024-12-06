@@ -3,6 +3,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using CounterStrikeSharp.API;
 using CounterStrikeSharp.API.Core;
+using CounterStrikeSharp.API.Modules.Admin;
 using CounterStrikeSharp.API.Modules.Entities;
 using CounterStrikeSharp.API.Modules.Memory;
 using CounterStrikeSharp.API.Modules.Memory.DynamicFunctions;
@@ -86,7 +87,7 @@ public class Helper
       sky.Enabled = true;
       sky.TintColor = Color.Transparent;
       sky.DispatchSpawn();
-      ChangeSkybox(slot, SkyboxChanger.GetInstance().Config.Skyboxs["@default"]);
+      ChangeSkybox(slot, SkyboxChanger.GetInstance().Config.Skyboxs[""]);
       return;
     }
     IntPtr ptr = Marshal.AllocHGlobal(0x30);
@@ -125,5 +126,83 @@ public class Helper
       }
     });
     return true;
+  }
+
+  public static bool PlayerHasPermission(CCSPlayerController player, string[]? permissions, string[]? permissionsOr)
+  {
+
+    if (permissions != null)
+    {
+      foreach (string perm in permissions)
+      {
+        if (perm.StartsWith("@"))
+        {
+          if (!AdminManager.PlayerHasPermissions(player, [perm]))
+          {
+            return false;
+          }
+        }
+        else if (perm.StartsWith("#"))
+        {
+          if (!AdminManager.PlayerInGroup(player, [perm]))
+          {
+            return false;
+          }
+        }
+        else
+        {
+          ulong steamId;
+          if (!ulong.TryParse(perm, out steamId))
+          {
+            throw new FormatException($"Unknown SteamID64 format: {perm}");
+          }
+          else
+          {
+            if (player.SteamID != steamId)
+            {
+              return false;
+            }
+          }
+        }
+      }
+    }
+
+    if (permissionsOr != null)
+    {
+      foreach (string perm in permissionsOr)
+      {
+        if (perm.StartsWith("@"))
+        {
+          if (AdminManager.PlayerHasPermissions(player, perm))
+          {
+            return true;
+          }
+        }
+        else if (perm.StartsWith("#"))
+        {
+          if (AdminManager.PlayerInGroup(player, perm))
+          {
+            return true;
+          }
+        }
+        else
+        {
+          ulong steamId;
+          if (!ulong.TryParse(perm, out steamId))
+          {
+            throw new FormatException($"Unknown SteamID64 format: {perm}");
+          }
+          else
+          {
+            if (player.SteamID == steamId)
+            {
+              return true;
+            }
+          }
+        }
+      }
+    }
+
+    return permissionsOr == null || permissionsOr.Length == 0;
   }
 }
