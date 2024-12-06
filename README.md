@@ -4,8 +4,8 @@ A counterstrikesharp plugin allow player to change their own skybox material, co
 
 ## How to use
 1. Download the plugin, decompress it to your counterstrikesharp plugin folder. A config file included default skyboxes will be generated automatically.
-2. Edit the config file to add or delete skyboxes.
-3. If you are using linux, it might requires to create symlink of `kvlib.so` in `dotnet/shared/Microsoft.NETCore.App/XXX/` folder.
+2. Fill in your database credentials in config file.
+3. Edit the config file to add or delete skyboxes.
 
 ## Permissions
 - `@skybox/change` Allow the player to change their own skybox.
