@@ -65,6 +65,9 @@ public class SkyboxConfig : BasePluginConfig
   [JsonPropertyName("MapDefault")]
   public Dictionary<string, string>? MapDefault { get; set; } = new();
 
+  [JsonPropertyName("MenuPermission")]
+  public string MenuPermission { get; set; } = "@skybox/change";
+
 
   [JsonPropertyName("Version")]
   public override int Version { get; set; } = 2;

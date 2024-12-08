@@ -51,6 +51,10 @@ public class SkyboxChanger : BasePlugin, IPluginConfig<SkyboxConfig>
       EnvManager.Clear();
       Service.Save();
     });
+    RegisterListener<Listeners.OnServerPreFatalShutdown>(() =>
+    {
+      Service.Save();
+    });
     RegisterListener<Listeners.OnEntityCreated>((entity) =>
     {
       if (entity.DesignerName == "sky_camera" || entity.DesignerName == "env_sky")
@@ -77,20 +81,25 @@ public class SkyboxChanger : BasePlugin, IPluginConfig<SkyboxConfig>
         }
       }
     });
-    RegisterEventHandler<EventPlayerSpawned>((@event, info) =>
+    RegisterListener<Listeners.OnClientPutInServer>((slot) =>
     {
-      if (@event.Userid == null) return HookResult.Continue;
-      if (@event.Userid.IsBot || @event.Userid.IsHLTV) return HookResult.Continue;
-      foreach (var sky in Utilities.FindAllEntitiesByDesignerName<CEnvSky>("env_sky"))
+      var player = Utilities.GetPlayerFromSlot(slot);
+      AddTimer(2f + 0.05f * slot, () =>
       {
-        if (sky.PrivateVScripts == @event.Userid.Slot.ToString()) return HookResult.Continue;
-      }
-      EnvManager.OnPlayerJoin(@event.Userid.Slot);
-      return HookResult.Continue;
+        Server.NextFrame(() =>
+        {
+          foreach (var sky in Utilities.FindAllEntitiesByDesignerName<CEnvSky>("env_sky"))
+          {
+            if (sky.PrivateVScripts == slot.ToString()) return;
+          }
+          EnvManager.OnPlayerJoin(slot);
+        });
+      });
+      return;
     });
     RegisterEventHandler<EventPlayerTeam>((@event, info) =>
     {
-      if (@event.Team != (int)CsTeam.Spectator) return HookResult.Continue;
+      // if (@event.Team == (int)CsTeam.None) return HookResult.Continue;
       if (@event.Userid == null) return HookResult.Continue;
       if (@event.Userid.IsBot || @event.Userid.IsHLTV) return HookResult.Continue;
       foreach (var sky in Utilities.FindAllEntitiesByDesignerName<CEnvSky>("env_sky"))
@@ -103,6 +112,7 @@ public class SkyboxChanger : BasePlugin, IPluginConfig<SkyboxConfig>
     RegisterListener<Listeners.OnClientDisconnect>(slot =>
     {
       EnvManager.OnPlayerLeave(slot);
+      Service.Save(Utilities.GetPlayerFromSlot(slot)?.AuthorizedSteamID?.SteamId64);
     });
     InitializeMenuSystem(hotReload);
     Helper.Initialize();
@@ -186,9 +196,12 @@ public class SkyboxChanger : BasePlugin, IPluginConfig<SkyboxConfig>
   [ConsoleCommand("css_sky")]
   [ConsoleCommand("css_skybox")]
   [CommandHelper(0, "Change skybox", CommandUsage.CLIENT_ONLY)]
-  [RequiresPermissionsOr("@skybox/change", "@skybox/changeall")]
   public unsafe void SkyboxCommand(CCSPlayerController player, CommandInfo info)
   {
+    if (Config.MenuPermission != "" && Config.MenuPermission != null && !AdminManager.PlayerHasPermissions(player, [Config.MenuPermission]))
+    {
+      return;
+    }
     WasdMyMenu personalMenu = new WasdMyMenu { Title = Localizer["menu.title"] };
     WasdMyMenu personalSkyboxSubmenu = new WasdMyMenu { Title = Localizer["menu.title"] };
     personalMenu.AddOption(new SubMenuOption { Text = Localizer["menu.title"], NextMenu = personalSkyboxSubmenu });

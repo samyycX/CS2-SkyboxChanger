@@ -57,11 +57,22 @@ public class Storage
     _PlayerStorage.AddRange(result);
   }
 
-  public void Save()
+  public void Save(ulong? steamid = null)
   {
-    foreach (var data in _PlayerStorage)
+    if (steamid == null)
     {
-      ExecuteAsync($"INSERT INTO `{_Table}` (`steamid`, `skybox`, `brightness`, `color`) VALUES (@SteamID, @Skybox, @Brightness, @Color) ON DUPLICATE KEY UPDATE `skybox` = @Skybox, `brightness` = @Brightness, `color` = @Color;", data);
+      foreach (var data in _PlayerStorage)
+      {
+        ExecuteAsync($"INSERT INTO `{_Table}` (`steamid`, `skybox`, `brightness`, `color`) VALUES (@SteamID, @Skybox, @Brightness, @Color) ON DUPLICATE KEY UPDATE `skybox` = @Skybox, `brightness` = @Brightness, `color` = @Color;", data);
+      }
+    }
+    else
+    {
+      var data = _PlayerStorage.Find((data) => data.SteamID == steamid);
+      if (data != null)
+      {
+        ExecuteAsync($"INSERT INTO `{_Table}` (`steamid`, `skybox`, `brightness`, `color`) VALUES (@SteamID, @Skybox, @Brightness, @Color) ON DUPLICATE KEY UPDATE `skybox` = @Skybox, `brightness` = @Brightness, `color` = @Color;", data);
+      }
     }
   }
 

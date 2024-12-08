@@ -77,9 +77,9 @@ public class Service
     return null;
   }
 
-  public void Save()
+  public void Save(ulong? steamid = null)
   {
-    _Storage.Save();
+    _Storage.Save(steamid);
   }
 
 }
