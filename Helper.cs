@@ -87,7 +87,10 @@ public class Helper
       sky.Enabled = true;
       sky.TintColor = Color.Transparent;
       sky.DispatchSpawn();
-      ChangeSkybox(slot, SkyboxChanger.GetInstance().Config.Skyboxs[""]);
+      if (SkyboxChanger.GetInstance().Config.Skyboxs.ContainsKey(""))
+      {
+        ChangeSkybox(slot, SkyboxChanger.GetInstance().Config.Skyboxs[""]);
+      }
       return;
     }
     IntPtr ptr = Marshal.AllocHGlobal(0x30);

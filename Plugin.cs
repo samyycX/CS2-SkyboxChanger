@@ -13,7 +13,7 @@ namespace SkyboxChanger;
 public class SkyboxChanger : BasePlugin, IPluginConfig<SkyboxConfig>
 {
   public override string ModuleName => "Skybox Changer";
-  public override string ModuleVersion => "1.2.0";
+  public override string ModuleVersion => "1.2.1";
   public override string ModuleAuthor => "samyyc";
 
   public SkyboxConfig Config { get; set; } = new();
@@ -206,9 +206,12 @@ public class SkyboxChanger : BasePlugin, IPluginConfig<SkyboxConfig>
     WasdMyMenu personalSkyboxSubmenu = new WasdMyMenu { Title = Localizer["menu.title"] };
     personalMenu.AddOption(new SubMenuOption { Text = Localizer["menu.title"], NextMenu = personalSkyboxSubmenu });
     var skyboxes = Config.Skyboxs.ToList();
-    var def = Config.Skyboxs[""];
     skyboxes.RemoveAll(kv => kv.Key == "");
-    skyboxes.Insert(0, new KeyValuePair<string, Skybox>("", def));
+    if (Config.Skyboxs.ContainsKey(""))
+    {
+      var def = Config.Skyboxs[""];
+      skyboxes.Insert(0, new KeyValuePair<string, Skybox>("", def));
+    }
     skyboxes.ForEach(skybox =>
     {
       if (!Helper.PlayerHasPermission(player, skybox.Value.Permissions, skybox.Value.PermissionsOr)) return;
