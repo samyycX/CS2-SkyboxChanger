@@ -81,22 +81,22 @@ public class SkyboxChanger : BasePlugin, IPluginConfig<SkyboxConfig>
         }
       }
     });
-    RegisterListener<Listeners.OnClientPutInServer>((slot) =>
-    {
-      var player = Utilities.GetPlayerFromSlot(slot);
-      AddTimer(2f + 0.05f * slot, () =>
-      {
-        Server.NextFrame(() =>
-        {
-          foreach (var sky in Utilities.FindAllEntitiesByDesignerName<CEnvSky>("env_sky"))
-          {
-            if (sky.PrivateVScripts == slot.ToString()) return;
-          }
-          EnvManager.OnPlayerJoin(slot);
-        });
-      });
-      return;
-    });
+    // RegisterListener<Listeners.OnClientPutInServer>((slot) =>
+    // {
+    //   var player = Utilities.GetPlayerFromSlot(slot);
+    //   AddTimer(2f + 0.05f * slot, () =>
+    //   {
+    //     Server.NextFrame(() =>
+    //     {
+    //       foreach (var sky in Utilities.FindAllEntitiesByDesignerName<CEnvSky>("env_sky"))
+    //       {
+    //         if (sky.PrivateVScripts == slot.ToString()) return;
+    //       }
+    //       EnvManager.OnPlayerJoin(slot);
+    //     });
+    //   });
+    //   return;
+    // });
     RegisterEventHandler<EventPlayerTeam>((@event, info) =>
     {
       // if (@event.Team == (int)CsTeam.None) return HookResult.Continue;

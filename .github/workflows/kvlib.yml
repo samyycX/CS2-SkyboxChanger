@@ -1,8 +1,10 @@
+name: Build
+
 on:
   workflow_dispatch:
 
 jobs:
-  build_linux:
+  build_kvlib_linux:
     runs-on: ubuntu-20.04
     steps:
     - name: Setup xmake
@@ -21,7 +23,7 @@ jobs:
       with:
         name: kvlib_linux
         path: kvlib/build/linux/x86_64/release/kvlib.so
-  build_windows:
+  build_kvlib_windows:
     runs-on: windows-latest
     steps:
     - name: Setup xmake
@@ -40,3 +42,41 @@ jobs:
       with:
         name: kvlib_windows
         path: kvlib/build/windows/x64/release/kvlib.dll
+  build_dotnet:
+    runs-on: windows-latest
+    needs: [build_kvlib_linux, build_kvlib_windows]
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+      - name: Prepare kvlib dir
+        run: mkdir -p ./kvlib
+      - name: Download kvlib
+        uses: actions/download-artifact@v4
+        with:
+          name: kvlib_linux
+          path: ./kvlib
+      - name: Download kvlib
+        uses: actions/download-artifact@v4
+        with:
+          name: kvlib_windows
+          path: ./kvlib
+      - name: Build .NET
+        run: dotnet build
+      - name: Copy kvlib to plugin
+        run: cp ./kvlib/* ./build/addons/counterstrikesharp/plugins/
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: SkyboxChanger
+          path: ./build/addons
+
+
+     
+
+
+
+
