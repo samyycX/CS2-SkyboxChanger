@@ -67,7 +67,7 @@ jobs:
       - name: Build .NET
         run: dotnet build
       - name: Copy kvlib to plugin
-        run: cp -rf ./kvlib_output/* ./build/addons/counterstrikesharp/plugins/SkyboxChanger
+        run: cp ./kvlib_output/* ./build/addons/counterstrikesharp/plugins/SkyboxChanger
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
