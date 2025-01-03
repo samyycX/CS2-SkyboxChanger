@@ -53,21 +53,21 @@ jobs:
         with:
           dotnet-version: 8.0.x
       - name: Prepare kvlib dir
-        run: mkdir -p ./kvlib
-      - name: Download kvlib
+        run: mkdir -p ./kvlib_output
+      - name: Download kvlib linux
         uses: actions/download-artifact@v4
         with:
           name: kvlib_linux
-          path: ./kvlib
-      - name: Download kvlib
+          path: ./kvlib_output
+      - name: Download kvlib windows
         uses: actions/download-artifact@v4
         with:
           name: kvlib_windows
-          path: ./kvlib
+          path: ./kvlib_output
       - name: Build .NET
         run: dotnet build
       - name: Copy kvlib to plugin
-        run: cp ./kvlib/* ./build/addons/counterstrikesharp/plugins/
+        run: cp ./kvlib_output/* ./build/addons/counterstrikesharp/plugins/
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
