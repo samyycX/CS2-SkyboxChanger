@@ -13,7 +13,7 @@ A counterstrikesharp plugin allow player to change their own skybox material, co
 3. Edit the config file to add or delete skyboxes.
 
 ## Permissions
-- `@skybox/change` Allow the player to change their own skybox.
+- `@skybox/change` Allow the player to change their own skybox. You can change it in config by chaning `MenuPermission`.
 
 ## Command
 - `!sky / !skybox` Open the select menu. (Need permission)
