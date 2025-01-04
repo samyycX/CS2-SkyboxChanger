@@ -13,7 +13,7 @@ namespace SkyboxChanger;
 public class SkyboxChanger : BasePlugin, IPluginConfig<SkyboxConfig>
 {
   public override string ModuleName => "Skybox Changer";
-  public override string ModuleVersion => "1.2.3";
+  public override string ModuleVersion => "1.2.4";
   public override string ModuleAuthor => "samyyc";
 
   public SkyboxConfig Config { get; set; } = new();
@@ -48,7 +48,7 @@ public class SkyboxChanger : BasePlugin, IPluginConfig<SkyboxConfig>
     });
     RegisterListener<Listeners.OnMapEnd>(() =>
     {
-      EnvManager.Clear();
+      EnvManager.Shutdown();
       Service.Save();
     });
     RegisterListener<Listeners.OnServerPreFatalShutdown>(() =>
@@ -100,12 +100,13 @@ public class SkyboxChanger : BasePlugin, IPluginConfig<SkyboxConfig>
     RegisterEventHandler<EventPlayerTeam>((@event, info) =>
     {
       // if (@event.Team == (int)CsTeam.None) return HookResult.Continue;
-      if (@event.Userid == null) return HookResult.Continue;
+      if (@event.Userid == null || @event.Disconnect) return HookResult.Continue;
       if (@event.Userid.IsBot || @event.Userid.IsHLTV) return HookResult.Continue;
       foreach (var sky in Utilities.FindAllEntitiesByDesignerName<CEnvSky>("env_sky"))
       {
         if (sky.PrivateVScripts == @event.Userid.Slot.ToString()) return HookResult.Continue;
       }
+      Console.WriteLine("!!!");
       EnvManager.OnPlayerJoin(@event.Userid.Slot);
       return HookResult.Continue;
     });

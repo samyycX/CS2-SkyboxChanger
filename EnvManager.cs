@@ -1,4 +1,5 @@
 using System.Drawing;
+using System.Runtime.CompilerServices;
 using CounterStrikeSharp.API;
 using CounterStrikeSharp.API.Core;
 using CounterStrikeSharp.API.Modules.Memory;
@@ -34,12 +35,17 @@ public class EnvManager
     Helper.SpawnSkybox(slot, _DefaultPrefab);
   }
 
-  public void OnPlayerLeave(int slot)
+  public unsafe void OnPlayerLeave(int slot)
   {
     Utilities.FindAllEntitiesByDesignerName<CEnvSky>("env_sky").ToList().ForEach(sky =>
     {
       if (sky.PrivateVScripts == slot.ToString())
       {
+        // when killing sky, the material will be released, and if it is used again, the server will crash on map change
+        // we set it to a not exist material handle to avoid crash
+        nint ptr = Helper.FindMaterialByPath("materials/notexist.vmat");
+        Unsafe.Write((void*)sky.SkyMaterial.Handle, ptr);
+        Unsafe.Write((void*)sky.SkyMaterialLightingOnly.Handle, ptr);
         sky.Remove();
       }
     });
@@ -52,11 +58,12 @@ public class EnvManager
     });
   }
 
-  public void Clear()
+  public void Shutdown()
   {
     _NextSettingPlayer = -1;
     _DefaultPrefab = "";
     SkyboxChanger.GetInstance().Config.Skyboxs.Remove("");
+
   }
 
   public void SetMapPrefab(string prefab)
