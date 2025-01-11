@@ -17,7 +17,7 @@ namespace SkyboxChanger;
 public class SkyboxChanger : BasePlugin, IPluginConfig<SkyboxConfig>
 {
   public override string ModuleName => "Skybox Changer";
-  public override string ModuleVersion => "1.3.0";
+  public override string ModuleVersion => "1.3.1";
   public override string ModuleAuthor => "samyyc";
 
   public SkyboxConfig Config { get; set; } = new();
@@ -124,7 +124,7 @@ public class SkyboxChanger : BasePlugin, IPluginConfig<SkyboxConfig>
     RegisterListener<Listeners.OnClientDisconnect>(slot =>
     {
       EnvManager.OnPlayerLeave(slot);
-      Service.Save(Utilities.GetPlayerFromSlot(slot)?.AuthorizedSteamID?.SteamId64);
+      Service.Save(Utilities.GetPlayerFromSlot(slot)?.SteamID);
     });
     InitializeMenuSystem(hotReload);
     Helper.Initialize();

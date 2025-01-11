@@ -4,7 +4,8 @@ using CounterStrikeSharp.API;
 using CounterStrikeSharp.API.Core;
 using CounterStrikeSharp.API.Modules.Memory;
 using CounterStrikeSharp.API.Modules.Memory.DynamicFunctions;
-using SkyboxChanger;
+
+namespace SkyboxChanger;
 
 class MemoryManager
 {
@@ -92,7 +93,8 @@ class MemoryManager
       pFactoryList = pNext;
     }
 
-    throw new Exception("FAILED TO FIND SpawnGroupManagerGameSystem. The game ma  y have been updated, please report it to the author.");
+
+    throw new Exception("FAILED TO FIND SpawnGroupManagerGameSystem. The game may have been updated, please report it to the author.");
   }
 
 

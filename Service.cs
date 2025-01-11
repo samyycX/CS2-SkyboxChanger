@@ -17,12 +17,12 @@ public class Service
 
   public bool SetSkybox(CCSPlayerController player, string index)
   {
-    _Storage.GetPlayerSkydata(player.AuthorizedSteamID!.SteamId64).Skybox = index;
+    _Storage.GetPlayerSkydata(player.SteamID).Skybox = index;
     Skybox skybox = _Plugin.Config.Skyboxs[index];
     if (skybox.Brightness != null)
     {
       _Plugin.EnvManager.SetBrightness(player.Slot, skybox.Brightness.Value);
-      _Storage.GetPlayerSkydata(player.AuthorizedSteamID!.SteamId64).Brightness = skybox.Brightness.Value;
+      _Storage.GetPlayerSkydata(player.SteamID).Brightness = skybox.Brightness.Value;
     }
     if (skybox.Color != null)
     {
@@ -34,7 +34,7 @@ public class Service
         var b = int.Parse(colorData[2]);
         var a = int.Parse(colorData[3]);
         _Plugin.EnvManager.SetTintColor(player.Slot, Color.FromArgb(a, r, g, b));
-        _Storage.GetPlayerSkydata(player.AuthorizedSteamID!.SteamId64).Color = Color.FromArgb(a, r, g, b).ToArgb();
+        _Storage.GetPlayerSkydata(player.SteamID).Color = Color.FromArgb(a, r, g, b).ToArgb();
       }
     }
     return _Plugin.EnvManager.SetSkybox(player.Slot, skybox);
@@ -42,30 +42,30 @@ public class Service
 
   public void SetBrightness(CCSPlayerController player, float brightness)
   {
-    _Storage.GetPlayerSkydata(player.AuthorizedSteamID!.SteamId64).Brightness = brightness;
+    _Storage.GetPlayerSkydata(player.SteamID).Brightness = brightness;
     _Plugin.EnvManager.SetBrightness(player.Slot, brightness);
   }
 
   public void SetTintColor(CCSPlayerController player, Color color)
   {
-    _Storage.GetPlayerSkydata(player.AuthorizedSteamID!.SteamId64).Color = color.ToArgb();
+    _Storage.GetPlayerSkydata(player.SteamID).Color = color.ToArgb();
     _Plugin.EnvManager.SetTintColor(player.Slot, color);
   }
 
   public Skybox? GetPlayerSkybox(CCSPlayerController player)
   {
-    var skyboxData = _Storage.GetPlayerSkydata(player.AuthorizedSteamID!.SteamId64);
+    var skyboxData = _Storage.GetPlayerSkydata(player.SteamID);
     return _Plugin.Config.Skyboxs.GetValueOrDefault(skyboxData.Skybox);
   }
 
   public float GetPlayerBrightness(CCSPlayerController player)
   {
-    return _Storage.GetPlayerSkydata(player.AuthorizedSteamID!.SteamId64).Brightness;
+    return _Storage.GetPlayerSkydata(player.SteamID).Brightness;
   }
 
   public Color GetPlayerColor(CCSPlayerController player)
   {
-    return Color.FromArgb(_Storage.GetPlayerSkydata(player.AuthorizedSteamID!.SteamId64).Color);
+    return Color.FromArgb(_Storage.GetPlayerSkydata(player.SteamID).Color);
   }
 
   public Skybox? GetMapDefaultSkybox(string map)

@@ -35,6 +35,7 @@ public class EnvManager
 
   public unsafe void OnPlayerLeave(int slot)
   {
+    if (!SpawnedSkyboxes.ContainsKey(slot)) return;
     var index = SpawnedSkyboxes[slot];
     CEnvSky sky = Utilities.GetEntityFromIndex<CEnvSky>(index)!;
     nint ptr = Helper.FindMaterialByPath("materials/notexist.vmat");
