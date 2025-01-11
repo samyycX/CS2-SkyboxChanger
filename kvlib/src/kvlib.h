@@ -9,6 +9,5 @@
 extern "C"
 {
   PINVOKE_EXPORT void NativeInitialize(void *ptr);
-  PINVOKE_EXPORT void *NativeMakeKeyValue(char *targetMapName);
-  PINVOKE_EXPORT void *NativeGetTargetMapName(void *kv);
+  PINVOKE_EXPORT void *NativeMakeKeyValue(char *fogTargetName, char *vscripts, char *material);
 }

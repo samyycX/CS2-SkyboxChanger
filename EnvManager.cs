@@ -9,67 +9,47 @@ namespace SkyboxChanger;
 
 public class EnvManager
 {
-  private string _DefaultPrefab = "";
+  public string DefaultMaterial { get; set; } = "";
 
-  public int _NextSettingPlayer = -1;
-  public unsafe void OnPlayerJoin(int slot)
+  public string? CubemapFogPointedSkyName { get; set; } = null;
+
+  public Dictionary<int, int> SpawnedSkyboxes = new();
+  public unsafe void InitializeSkyboxForPlayer(CCSPlayerController player)
   {
-    _NextSettingPlayer = slot;
-    if (!SkyboxChanger.GetInstance().Config.Skyboxs.ContainsKey(""))
+    Helper.SpawnSkybox(player.Slot, CubemapFogPointedSkyName ?? "", DefaultMaterial);
+
+    Skybox? skybox = SkyboxChanger.GetInstance().Service.GetPlayerSkybox(player);
+    float brightness = SkyboxChanger.GetInstance().Service.GetPlayerBrightness(player);
+    Color color = SkyboxChanger.GetInstance().Service.GetPlayerColor(player);
+
+
+    // after 2 tick avoid conflict with SpawnSkybox initialization
+    Server.NextFrame(() =>
     {
-      foreach (var sky in Utilities.FindAllEntitiesByDesignerName<CEnvSky>("env_sky"))
+      Server.NextFrame(() =>
       {
-        if (sky.PrivateVScripts == null || sky.PrivateVScripts == "")
-        {
-          nint materialptr = *(IntPtr*)sky.SkyMaterial.Value;
-          var GetMaterialName = VirtualFunction.Create<IntPtr, string>(materialptr, 0);
-          string skyMaterial = GetMaterialName.Invoke(materialptr);
-          SkyboxChanger.GetInstance().Config.Skyboxs.Add(
-            "",
-            new Skybox { Name = SkyboxChanger.GetInstance().Localizer["menu.defaultskybox"], Material = skyMaterial }
-          );
-          break;
-        }
-      };
-    }
-    Helper.SpawnSkybox(slot, _DefaultPrefab);
+        Helper.ChangeSkybox(player.Slot, skybox, brightness, color);
+      });
+    });
   }
 
   public unsafe void OnPlayerLeave(int slot)
   {
-    Utilities.FindAllEntitiesByDesignerName<CEnvSky>("env_sky").ToList().ForEach(sky =>
-    {
-      if (sky.PrivateVScripts == slot.ToString())
-      {
-        // when killing sky, the material will be released, and if it is used again, the server will crash on map change
-        // we set it to a not exist material handle to avoid crash
-        nint ptr = Helper.FindMaterialByPath("materials/notexist.vmat");
-        Unsafe.Write((void*)sky.SkyMaterial.Handle, ptr);
-        Unsafe.Write((void*)sky.SkyMaterialLightingOnly.Handle, ptr);
-        sky.Remove();
-      }
-    });
-    Utilities.FindAllEntitiesByDesignerName<CSkyCamera>("sky_camera").ToList().ForEach(sky =>
-    {
-      if (sky.PrivateVScripts == slot.ToString())
-      {
-        sky.Remove();
-      }
-    });
+    var index = SpawnedSkyboxes[slot];
+    CEnvSky sky = Utilities.GetEntityFromIndex<CEnvSky>(index)!;
+    nint ptr = Helper.FindMaterialByPath("materials/notexist.vmat");
+    Unsafe.Write((void*)sky.SkyMaterial.Handle, ptr);
+    Unsafe.Write((void*)sky.SkyMaterialLightingOnly.Handle, ptr);
+    SpawnedSkyboxes.Remove(slot);
+    sky.Remove();
   }
 
   public void Shutdown()
   {
-    _NextSettingPlayer = -1;
-    _DefaultPrefab = "";
+    DefaultMaterial = "";
+    CubemapFogPointedSkyName = null;
     SkyboxChanger.GetInstance().Config.Skyboxs.Remove("");
-
-  }
-
-  public void SetMapPrefab(string prefab)
-  {
-    if (_DefaultPrefab != "") return;
-    _DefaultPrefab = prefab;
+    SpawnedSkyboxes.Clear();
   }
 
   public bool SetSkybox(int slot, Skybox skybox)
@@ -79,50 +59,27 @@ public class EnvManager
 
   public void SetBrightness(int slot, float value)
   {
-    Utilities.FindAllEntitiesByDesignerName<CEnvSky>("env_sky").ToList().ForEach(sky =>
-    {
-      if (slot == -1 || sky.PrivateVScripts == slot.ToString())
-      {
-        sky.BrightnessScale = value;
-        Utilities.SetStateChanged(sky, "CEnvSky", "m_flBrightnessScale");
-      }
-    });
+    Helper.ChangeSkybox(slot, null, value, null);
   }
 
   public void SetTintColor(int slot, Color color)
   {
-    Utilities.FindAllEntitiesByDesignerName<CEnvSky>("env_sky").ToList().ForEach(sky =>
-    {
-      if (slot == -1 || sky.PrivateVScripts == slot.ToString())
-      {
-        sky.TintColor = color;
-        Utilities.SetStateChanged(sky, "CEnvSky", "m_vTintColor");
-      }
-    });
+    Helper.ChangeSkybox(slot, null, null, color);
   }
   public void OnCheckTransmit(CCheckTransmitInfoList infoList)
   {
-    var skys = Utilities.FindAllEntitiesByDesignerName<CEnvSky>("env_sky").ToList();
-    var skycameras = Utilities.FindAllEntitiesByDesignerName<CSkyCamera>("sky_camera").ToList();
     foreach ((CCheckTransmitInfo info, CCSPlayerController? player) in infoList)
     {
       if (player == null) continue;
-      skycameras.ForEach(skyCamera =>
-        {
-          if (skyCamera.PrivateVScripts != null && skyCamera.PrivateVScripts != player.Slot.ToString())
-          {
-            info.TransmitAlways.Remove(skyCamera.Index);
-            info.TransmitEntities.Remove(skyCamera.Index);
-          }
-        });
-      skys.ForEach(sky =>
+      SpawnedSkyboxes.Values.ToList().ForEach(index =>
       {
-        if (sky.PrivateVScripts != player.Slot.ToString())
-        {
-          info.TransmitAlways.Remove(sky.Index);
-          info.TransmitEntities.Remove(sky.Index);
-        }
+        info.TransmitAlways.Remove(index);
+        info.TransmitEntities.Remove(index);
       });
+      if (!SpawnedSkyboxes.ContainsKey(player.Slot)) continue;
+      var index = SpawnedSkyboxes[player.Slot];
+      info.TransmitAlways.Add(index);
+      info.TransmitEntities.Add(index);
     }
   }
 }

@@ -1,19 +1,23 @@
 ﻿using System.Drawing;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using CounterStrikeSharp.API;
 using CounterStrikeSharp.API.Core;
 using CounterStrikeSharp.API.Core.Attributes.Registration;
 using CounterStrikeSharp.API.Modules.Admin;
 using CounterStrikeSharp.API.Modules.Commands;
+using CounterStrikeSharp.API.Modules.Memory;
 using CounterStrikeSharp.API.Modules.Memory.DynamicFunctions;
+using CounterStrikeSharp.API.Modules.UserMessages;
 using CounterStrikeSharp.API.Modules.Utils;
+using Microsoft.Extensions.Logging;
 
 namespace SkyboxChanger;
 
 public class SkyboxChanger : BasePlugin, IPluginConfig<SkyboxConfig>
 {
   public override string ModuleName => "Skybox Changer";
-  public override string ModuleVersion => "1.2.4";
+  public override string ModuleVersion => "1.3.0";
   public override string ModuleAuthor => "samyyc";
 
   public SkyboxConfig Config { get; set; } = new();
@@ -25,31 +29,39 @@ public class SkyboxChanger : BasePlugin, IPluginConfig<SkyboxConfig>
   public required Service Service { get; set; }
   private static SkyboxChanger? _Instance { get; set; }
 
-  public MemoryFunctionVoid? SpawnPrefabEntities { get; set; }
-
   public override unsafe void Load(bool hotReload)
   {
+    if (hotReload)
+    {
+      Logger.LogError("HOT RELOAD DETECTED. It's NOT recommended to hot reload this plugin, please restart your server.");
+    }
     KvLib.SetDllImportResolver();
+    MemoryManager.Load();
     _Instance = this;
     RegisterListener<Listeners.OnServerPrecacheResources>(OnServerPrecacheResources);
     RegisterListener<Listeners.CheckTransmit>(OnCheckTransmit);
     RegisterListener<Listeners.OnMapStart>((map) =>
     {
-      var skybox = Service.GetMapDefaultSkybox(map);
-      if (skybox != null)
+      if (!Config.Skyboxs.ContainsKey(""))
       {
-        var defaultSkybox = new Skybox
+        var skybox = Service.GetMapDefaultSkybox(map);
+        if (skybox != null)
         {
-          Name = Localizer["menu.defaultskybox"],
-          Material = skybox.Material,
-        };
-        Config.Skyboxs.Add("", defaultSkybox);
+          var defaultSkybox = new Skybox
+          {
+            Name = Localizer["menu.defaultskybox"],
+            Material = skybox.Material,
+          };
+          Config.Skyboxs.Add("", defaultSkybox);
+          EnvManager.DefaultMaterial = skybox.Material;
+        }
       }
     });
     RegisterListener<Listeners.OnMapEnd>(() =>
     {
       EnvManager.Shutdown();
       Service.Save();
+      MemoryManager.RemoveCachedFactory();
     });
     RegisterListener<Listeners.OnServerPreFatalShutdown>(() =>
     {
@@ -57,58 +69,57 @@ public class SkyboxChanger : BasePlugin, IPluginConfig<SkyboxConfig>
     });
     RegisterListener<Listeners.OnEntityCreated>((entity) =>
     {
-      if (entity.DesignerName == "sky_camera" || entity.DesignerName == "env_sky")
+      Server.NextFrame(() =>
       {
-        if (EnvManager._NextSettingPlayer != -1)
+        if (entity.DesignerName == "env_cubemap_fog")
         {
-          entity.PrivateVScripts = EnvManager._NextSettingPlayer.ToString();
-          if (entity.DesignerName == "env_sky")
+          CEnvCubemapFog fog = new CEnvCubemapFog(entity.Handle);
+          EnvManager.CubemapFogPointedSkyName = "[PR#]" + fog.SkyEntity;
+        }
+        if (entity.DesignerName == "env_sky")
+        {
+          CEnvSky sky = new CEnvSky(entity.Handle);
+          if (entity.PrivateVScripts == null || !entity.PrivateVScripts.StartsWith("skyboxchanger_"))
           {
-            Server.NextFrame(() =>
+            if (!Config.Skyboxs.ContainsKey(""))
             {
-              var player = Utilities.GetPlayerFromSlot(EnvManager._NextSettingPlayer)!;
-              var skybox = Service.GetPlayerSkybox(player);
-              var brightness = Service.GetPlayerBrightness(player);
-              var color = Service.GetPlayerColor(player);
-              if (skybox != null)
-              {
-                EnvManager.SetSkybox(EnvManager._NextSettingPlayer, skybox);
-              }
-              EnvManager.SetBrightness(EnvManager._NextSettingPlayer, brightness);
-              EnvManager.SetTintColor(EnvManager._NextSettingPlayer, color);
-            });
+              nint materialptr = *(IntPtr*)sky.SkyMaterial.Value;
+              var GetMaterialName = VirtualFunction.Create<IntPtr, string>(materialptr, 0);
+              string skyMaterial = GetMaterialName.Invoke(materialptr);
+              EnvManager.DefaultMaterial = skyMaterial;
+              Config.Skyboxs.Add(
+                "",
+                new Skybox { Name = Localizer["menu.defaultskybox"], Material = skyMaterial }
+              );
+            }
+            sky.Remove();
+          }
+          else
+          {
+            EnvManager.SpawnedSkyboxes.Add(int.Parse(entity.PrivateVScripts.Replace("skyboxchanger_", "")), (int)entity.Index);
           }
         }
-      }
+      });
     });
-    // RegisterListener<Listeners.OnClientPutInServer>((slot) =>
-    // {
-    //   var player = Utilities.GetPlayerFromSlot(slot);
-    //   AddTimer(2f + 0.05f * slot, () =>
-    //   {
-    //     Server.NextFrame(() =>
-    //     {
-    //       foreach (var sky in Utilities.FindAllEntitiesByDesignerName<CEnvSky>("env_sky"))
-    //       {
-    //         if (sky.PrivateVScripts == slot.ToString()) return;
-    //       }
-    //       EnvManager.OnPlayerJoin(slot);
-    //     });
-    //   });
-    //   return;
-    // });
-    RegisterEventHandler<EventPlayerTeam>((@event, info) =>
+    RegisterListener<Listeners.OnClientPutInServer>((slot) =>
     {
-      // if (@event.Team == (int)CsTeam.None) return HookResult.Continue;
-      if (@event.Userid == null || @event.Disconnect) return HookResult.Continue;
-      if (@event.Userid.IsBot || @event.Userid.IsHLTV) return HookResult.Continue;
-      foreach (var sky in Utilities.FindAllEntitiesByDesignerName<CEnvSky>("env_sky"))
+      var player = Utilities.GetPlayerFromSlot(slot)!;
+      AddTimer(slot, () =>
       {
-        if (sky.PrivateVScripts == @event.Userid.Slot.ToString()) return HookResult.Continue;
-      }
-      Console.WriteLine("!!!");
-      EnvManager.OnPlayerJoin(@event.Userid.Slot);
-      return HookResult.Continue;
+        Server.NextFrame(() =>
+        {
+          foreach (var sky in Utilities.FindAllEntitiesByDesignerName<CEnvSky>("env_sky"))
+          {
+            if (Helper.IsPlayerSkybox(slot, sky))
+            {
+              sky.Remove();
+              EnvManager.SpawnedSkyboxes.Remove(slot);
+            }
+          }
+          EnvManager.InitializeSkyboxForPlayer(player);
+        });
+      });
+      return;
     });
     RegisterListener<Listeners.OnClientDisconnect>(slot =>
     {
@@ -145,6 +156,7 @@ public class SkyboxChanger : BasePlugin, IPluginConfig<SkyboxConfig>
     RegisterListener<Listeners.OnMapEnd>(() =>
     {
       MenuManager.ClearPlayer();
+      Config.Skyboxs.Remove("");
     });
     RegisterListener<Listeners.OnTick>(() =>
     {
@@ -159,6 +171,8 @@ public class SkyboxChanger : BasePlugin, IPluginConfig<SkyboxConfig>
   public override void Unload(bool hotReload)
   {
     Service.Save();
+    MemoryManager.Unload();
+
   }
 
   public static SkyboxChanger GetInstance()
@@ -192,6 +206,16 @@ public class SkyboxChanger : BasePlugin, IPluginConfig<SkyboxConfig>
       }
       manifest.AddResource(skybox.Value.Material);
     }
+  }
+
+  [ConsoleCommand("css_aa")]
+  public void TEST(CCSPlayerController player, CommandInfo info)
+  {
+    Utilities.FindAllEntitiesByDesignerName<CEnvCubemapFog>("env_cubemap_fog").ToList().ForEach(fog =>
+      {
+        fog.SkyEntity = "aaa";
+        Utilities.SetStateChanged(fog, "CEnvCubemapFog", "m_iszSkyEntity");
+      });
   }
 
   [ConsoleCommand("css_sky")]

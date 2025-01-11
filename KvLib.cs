@@ -13,10 +13,7 @@ public class KvLib
   public static extern void NativeInitialize(nint pGameEntitySystem);
 
   [DllImport("kvlib", CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Auto)]
-  public static extern nint NativeMakeKeyValue([MarshalAs(UnmanagedType.LPUTF8Str)] string targetMapName);
-
-  [DllImport("kvlib", CallingConvention = CallingConvention.Cdecl)]
-  public static extern nint NativeGetTargetMapName(ulong pKeyValues);
+  public static extern nint NativeMakeKeyValue([MarshalAs(UnmanagedType.LPUTF8Str)] string fogTargetName, [MarshalAs(UnmanagedType.LPUTF8Str)] string vscripts, [MarshalAs(UnmanagedType.LPUTF8Str)] string material);
 
   public static bool Initialized { get; set; } = false;
 
@@ -45,28 +42,14 @@ public class KvLib
     Initialized = true;
   }
 
-  public static nint MakeKeyValue(string targetMapName)
+  public static nint MakeKeyValue(string fogTargetName, string vscripts, string material)
   {
     if (!Initialized)
     {
       Initialize();
     }
     // return 0;
-    return NativeMakeKeyValue(targetMapName);
-  }
-  public static string? GetTargetMapName(nint pKeyValues)
-  {
-    if (!Initialized)
-    {
-      Initialize();
-    }
-    nint ptr = NativeGetTargetMapName((ulong)pKeyValues);
-    if (ptr == 0)
-    {
-      return null;
-    }
-    string str = Marshal.PtrToStringUTF8(ptr)!;
-    return str;
+    return NativeMakeKeyValue(fogTargetName, vscripts, material);
   }
 
 

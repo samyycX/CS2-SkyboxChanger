@@ -12,41 +12,15 @@ namespace SkyboxChanger;
 
 public class Helper
 {
-  public static MemoryFunctionVoid<nint, uint, nint, nint, nint>? SpawnPrefabEntities_Windows;
 
-  // first param should be double, but ccs doesnt support that and it doesnt matter i think
-  public static MemoryFunctionWithReturn<nint, float, nint, uint, nint, nint, nint, nint>? SpawnPrefabEntities_Linux;
+  public static bool IsPlayerSkybox(int slot, CEnvSky sky)
+  {
+    return slot == -1 || sky.PrivateVScripts == "skyboxchanger_" + slot;
+  }
 
   public static void Initialize()
   {
-    if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-    {
-      SpawnPrefabEntities_Windows = new(GameData.GetSignature("SpawnPrefabEntities"));
-      SpawnPrefabEntities_Windows.Hook(hook =>
-      {
-        string? prefab = KvLib.GetTargetMapName(hook.GetParam<nint>(4));
-        if (prefab != null)
-        {
-          SkyboxChanger.GetInstance().EnvManager.SetMapPrefab(prefab);
-        }
-        return HookResult.Continue;
-      }, HookMode.Pre);
-    }
-    else
-    {
-      SpawnPrefabEntities_Linux = new(GameData.GetSignature("SpawnPrefabEntities"));
-      SpawnPrefabEntities_Linux.Hook(hook =>
-      {
-        // mismatch with ida
-        nint ptr = hook.GetParam<nint>(5);
-        string? prefab = KvLib.GetTargetMapName(ptr);
-        if (prefab != null)
-        {
-          SkyboxChanger.GetInstance().EnvManager.SetMapPrefab(prefab);
-        }
-        return HookResult.Continue;
-      }, HookMode.Pre);
-    }
+
   }
 
   public static unsafe IntPtr FindMaterialByPath(string material)
@@ -74,60 +48,64 @@ public class Helper
     }
     return *(IntPtr*)materialptr3; // CMaterial*** -> CMaterial** (InfoForResourceTypeIMaterial2)
   }
-  public static void SpawnSkybox(int slot, string prefab)
+
+  public static unsafe void SpawnSkybox(int slot, string fogTargetName, string material)
   {
-    if (prefab == null || prefab == "")
+    var skycameras = Utilities.FindAllEntitiesByDesignerName<CSkyCamera>("sky_camera");
+    uint spawngrouphandle = 0;
+    if (skycameras.Count() != 0) // has 3d skybox
     {
-      // directly spawn env_sky since prefab is empty so theres no need to create 3d skybox
-      Utilities.FindAllEntitiesByDesignerName<CSkyCamera>("sky_camera").ToList().ForEach(camera => camera.Remove());
-      var sky = Utilities.CreateEntityByName<CEnvSky>("env_sky")!;
-      sky.PrivateVScripts = slot.ToString();
-      sky.BrightnessScale = 1;
-      sky.StartDisabled = false;
-      sky.Enabled = true;
-      sky.TintColor = Color.Transparent;
-      sky.DispatchSpawn();
-      if (SkyboxChanger.GetInstance().Config.Skyboxs.ContainsKey(""))
-      {
-        ChangeSkybox(slot, SkyboxChanger.GetInstance().Config.Skyboxs[""]);
-      }
-      return;
-    }
-    IntPtr ptr = Marshal.AllocHGlobal(0x30);
-    for (int i = 0; i < 0x30; i++)
-    {
-      Marshal.WriteByte(ptr, i, 0);
-    }
-    CNetworkOriginCellCoordQuantizedVector vec = new(ptr);
-    if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-    {
-      SpawnPrefabEntities_Windows!.Invoke(0, 0, 0, ptr, KvLib.MakeKeyValue(prefab));
+      var skycamera = skycameras.First();
+      spawngrouphandle = *(uint*)(skycamera.Entity!.Handle + 0x34);
+      MemoryManager.CreateLoadingSpawnGroupAndSpawnEntities(spawngrouphandle, true, true, KvLib.MakeKeyValue(fogTargetName, "skyboxchanger_" + slot, material));
     }
     else
     {
-      // the param shit mismatch with ida
-      SpawnPrefabEntities_Linux!.Invoke(0, 0, 0, 0, ptr, KvLib.MakeKeyValue(prefab), 0);
+      var sky = Utilities.CreateEntityByName<CEnvSky>("env_sky");
+      sky.PrivateVScripts = "skyboxchanger_" + slot;
+      sky.DispatchSpawn();
+      Server.NextFrame(() =>
+      {
+        ChangeSkybox(slot, null, 1f, Color.White);
+      });
     }
   }
 
-  public static unsafe bool ChangeSkybox(int slot, Skybox skybox)
+  public static unsafe bool ChangeSkybox(int slot, Skybox? skybox = null, float? brightness = null, Color? color = null)
   {
     // materialptr2 : CMaterial2** = InfoForResourceTypeIMaterial2
-    var materialptr2 = FindMaterialByPath(skybox.Material);
-    if (materialptr2 == 0)
+
+
+    var sky = Utilities.GetEntityFromIndex<CEnvSky>(SkyboxChanger.GetInstance().EnvManager.SpawnedSkyboxes[slot])!;
+    if (skybox != null)
     {
-      return false;
-    }
-    Utilities.FindAllEntitiesByDesignerName<CEnvSky>("env_sky").ToList().ForEach(sky =>
-    {
-      if (slot == -1 || sky.PrivateVScripts == slot.ToString())
+      var materialptr2 = FindMaterialByPath(skybox.Material);
+      if (materialptr2 == 0)
       {
-        Unsafe.Write((void*)sky.SkyMaterial.Handle, materialptr2);
-        Unsafe.Write((void*)sky.SkyMaterialLightingOnly.Handle, materialptr2);
-        Utilities.SetStateChanged(sky, "CEnvSky", "m_hSkyMaterial");
-        Utilities.SetStateChanged(sky, "CEnvSky", "m_hSkyMaterialLightingOnly");
+        return false;
       }
-    });
+      Unsafe.Write((void*)sky.SkyMaterial.Handle, materialptr2);
+      Unsafe.Write((void*)sky.SkyMaterialLightingOnly.Handle, materialptr2);
+      Utilities.SetStateChanged(sky, "CEnvSky", "m_hSkyMaterial");
+      Utilities.SetStateChanged(sky, "CEnvSky", "m_hSkyMaterialLightingOnly");
+    }
+
+    if (color != null)
+    {
+      sky.TintColor = (Color)color;
+    }
+    sky.BrightnessScale = brightness ?? skybox?.Brightness ?? sky.BrightnessScale;
+    var colorData = skybox?.Color?.Split(" ");
+    if (colorData != null && colorData.Length == 4)
+    {
+      var r = int.Parse(colorData[0]);
+      var g = int.Parse(colorData[1]);
+      var b = int.Parse(colorData[2]);
+      var a = int.Parse(colorData[3]);
+      sky.TintColor = Color.FromArgb(a, r, g, b);
+    }
+    Utilities.SetStateChanged(sky, "CEnvSky", "m_vTintColor");
+    Utilities.SetStateChanged(sky, "CEnvSky", "m_flBrightnessScale");
     return true;
   }
 
