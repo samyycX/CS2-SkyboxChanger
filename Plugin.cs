@@ -101,25 +101,23 @@ public class SkyboxChanger : BasePlugin, IPluginConfig<SkyboxConfig>
         }
       });
     });
-    RegisterListener<Listeners.OnClientPutInServer>((slot) =>
+    RegisterEventHandler<EventPlayerConnectFull>((@event, info) =>
     {
-      var player = Utilities.GetPlayerFromSlot(slot)!;
-      AddTimer(slot, () =>
+      var slot = @event.Userid!.Slot;
+      var player = @event.Userid!;
+      Server.NextFrame(() =>
       {
-        Server.NextFrame(() =>
+        foreach (var sky in Utilities.FindAllEntitiesByDesignerName<CEnvSky>("env_sky"))
         {
-          foreach (var sky in Utilities.FindAllEntitiesByDesignerName<CEnvSky>("env_sky"))
+          if (Helper.IsPlayerSkybox(slot, sky))
           {
-            if (Helper.IsPlayerSkybox(slot, sky))
-            {
-              sky.Remove();
-              EnvManager.SpawnedSkyboxes.Remove(slot);
-            }
+            sky.Remove();
+            EnvManager.SpawnedSkyboxes.Remove(slot);
           }
-          EnvManager.InitializeSkyboxForPlayer(player);
-        });
+        }
+        EnvManager.InitializeSkyboxForPlayer(player);
       });
-      return;
+      return HookResult.Continue;
     });
     RegisterListener<Listeners.OnClientDisconnect>(slot =>
     {
@@ -206,16 +204,6 @@ public class SkyboxChanger : BasePlugin, IPluginConfig<SkyboxConfig>
       }
       manifest.AddResource(skybox.Value.Material);
     }
-  }
-
-  [ConsoleCommand("css_aa")]
-  public void TEST(CCSPlayerController player, CommandInfo info)
-  {
-    Utilities.FindAllEntitiesByDesignerName<CEnvCubemapFog>("env_cubemap_fog").ToList().ForEach(fog =>
-      {
-        fog.SkyEntity = "aaa";
-        Utilities.SetStateChanged(fog, "CEnvCubemapFog", "m_iszSkyEntity");
-      });
   }
 
   [ConsoleCommand("css_sky")]
