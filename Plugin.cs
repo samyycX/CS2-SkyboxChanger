@@ -17,7 +17,7 @@ namespace SkyboxChanger;
 public class SkyboxChanger : BasePlugin, IPluginConfig<SkyboxConfig>
 {
   public override string ModuleName => "Skybox Changer";
-  public override string ModuleVersion => "1.3.1";
+  public override string ModuleVersion => "1.3.2";
   public override string ModuleAuthor => "samyyc";
 
   public SkyboxConfig Config { get; set; } = new();
