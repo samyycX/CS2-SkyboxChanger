@@ -10,6 +10,7 @@ target("windows")
     add_files("src/**.cpp")
     add_headerfiles("src/**.h")
     add_defines("PLATFORM_WINDOWS")
+    add_ldflags("/NODEFAULTLIB:ucrt.lib")
 
     add_files({
         SDK_PATH.."/tier1/convar.cpp",
