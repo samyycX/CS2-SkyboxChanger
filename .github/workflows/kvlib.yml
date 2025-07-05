@@ -5,7 +5,7 @@ on:
 
 jobs:
   build_kvlib_linux:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     steps:
     - name: Setup xmake
       uses: xmake-io/github-action-setup-xmake@v1
@@ -29,7 +29,7 @@ jobs:
     - name: Setup xmake
       uses: xmake-io/github-action-setup-xmake@v1
       with:
-        xmake-version: latest
+        xmake-version: "2.9.6"
     - name: Checkout repository and submodules
       uses: actions/checkout@v4
       with:
