@@ -80,6 +80,11 @@ target("linux")
     add_headerfiles("src/**.h")
     add_cxxflags("-fvisibility=default")
 
+    add_defines(
+        "stricmp=strcasecmp",
+        "_stricmp=strcasecmp"
+    )
+
     add_files({
         SDK_PATH.."/tier1/convar.cpp",
         SDK_PATH.."/public/tier0/memoverride.cpp",
