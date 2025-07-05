@@ -36,9 +36,12 @@ extern "C"
         kv->SetBool("StartDisabled", false);
         kv->SetFloat("brightnessscale", 1.0f);
 
-        float values[] = {255.0f, 255.0f, 255.0f, 255.0f};
-        Vector4D *vec = new Vector4D(values);
-        kv->SetVector4D("tint_color", *vec);
+        Vector4D vec;
+        vec.x = 255.0f;
+        vec.y = 255.0f;
+        vec.z = 255.0f;
+        vec.w = 255.0f;
+        kv->SetVector4D("tint_color", vec);
         CUtlVector<CEntityKeyValues *> *kvs = new CUtlVector<CEntityKeyValues *>();
         kvs->AddToTail(kv);
 
