@@ -23,6 +23,8 @@ public class Helper
 
   }
 
+  delegate IntPtr FindOrCreateMaterialFromResourceDelegate(IntPtr pMaterialSystem, IntPtr pOut, string materialName);
+
   public static unsafe IntPtr FindMaterialByPath(string material)
   {
     if (material.EndsWith("_c"))
@@ -30,17 +32,18 @@ public class Helper
       material = material.Substring(0, material.Length - 2);
     }
     IntPtr pIMaterialSystem2 = NativeAPI.GetValveInterface(0, "VMaterialSystem2_001");
-    var FindOrCreateFromResource = VirtualFunction.Create<IntPtr, IntPtr, string, IntPtr>(pIMaterialSystem2, 14);
+    IntPtr functionPtr = Marshal.ReadIntPtr(Marshal.ReadIntPtr(pIMaterialSystem2) + (GameData.GetOffset("IMaterialSystem_FindOrCreateMaterialFromResource") * IntPtr.Size));
+    var FindOrCreateMaterialFromResource = Marshal.GetDelegateForFunctionPointer<FindOrCreateMaterialFromResourceDelegate>(functionPtr);
     IntPtr outMaterial = 0;
     IntPtr pOutMaterial = (nint)(&outMaterial);
     IntPtr materialptr3;
     if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
     {
-      materialptr3 = FindOrCreateFromResource.Invoke(pIMaterialSystem2, pOutMaterial, material);
+      materialptr3 = FindOrCreateMaterialFromResource.Invoke(pIMaterialSystem2, pOutMaterial, material);
     }
     else
     {
-      materialptr3 = FindOrCreateFromResource.Invoke(pOutMaterial, 0, material);
+      materialptr3 = FindOrCreateMaterialFromResource.Invoke(pOutMaterial, 0, material);
     }
     if (materialptr3 == 0)
     {

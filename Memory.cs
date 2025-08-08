@@ -44,6 +44,8 @@ class MemoryManager
   {
   }
 
+  delegate void SpawnEntitiesDelegate(IntPtr pLoadingSpawnGroup);
+
   public static void CreateLoadingSpawnGroupAndSpawnEntities(uint spawnGroupHandle, bool bSynchronouslySpawnEntities, bool bConfirmResourcesLoaded, IntPtr pEntityKeyValues)
   {
     var pSpawnGroupMgrGameSystem = FindSpawnGroupMgrGameSystem();
@@ -55,8 +57,8 @@ class MemoryManager
         Convert.ToByte(bSynchronouslySpawnEntities),
         Convert.ToByte(bConfirmResourcesLoaded),
         pEntityKeyValues);
-
-    var SpawnEntities = VirtualFunction.CreateVoid<nint>(pLoadingSpawnGroup, 10);
+    IntPtr functionPtr = Marshal.ReadIntPtr(Marshal.ReadIntPtr(pLoadingSpawnGroup) + (GameData.GetOffset("CLoadingSpawnGroup_SpawnEntities") * IntPtr.Size));
+    var SpawnEntities = Marshal.GetDelegateForFunctionPointer<SpawnEntitiesDelegate>(functionPtr);
     SpawnEntities.Invoke(pLoadingSpawnGroup);
   }
 
