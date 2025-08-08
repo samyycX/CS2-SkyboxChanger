@@ -1,1 +1,14 @@
-{}
+{
+  "CLoadingSpawnGroup_SpawnEntities": {
+    "offsets": {
+      "windows": 10,
+      "linux": 10
+    }
+  },
+  "IMaterialSystem_FindOrCreateMaterialFromResource": {
+    "offsets": {
+      "windows": 14,
+      "linux": 14
+    }
+  }
+}
